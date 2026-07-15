@@ -127,3 +127,22 @@ test("transforms agent messages carried in binary WebSocket frames", async () =>
   expect(frame).toContain("artifact abcdefgh expired");
   expect(frame).not.toContain('<ftn art="abcdefgh"/>');
 });
+
+test("transforms browser-style WebSocket payloads", async () => {
+  const json = JSON.stringify({
+    method: "item/agentMessage/delta",
+    params: { itemId: "browser", delta: `<ftn art="abcdefgh"/>` },
+  });
+  for (const payload of [
+    new TextEncoder().encode(json).buffer,
+    new Blob([json]),
+  ]) {
+    const frame = await transformCodexFrame(
+      payload,
+      new Map(),
+      mkdtempSync(join(tmpdir(), "ftn-codex-browser-")),
+    );
+    expect(frame).toContain("artifact abcdefgh expired");
+    expect(frame).not.toContain(`<ftn art="abcdefgh"/>`);
+  }
+});

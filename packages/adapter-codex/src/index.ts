@@ -74,11 +74,28 @@ export async function transformCodexMessage(
 }
 
 export async function transformCodexFrame(
-  data: { toString(): string },
+  data: unknown,
   state: Map<string, ItemState>,
   cwd = process.cwd(),
 ): Promise<string> {
-  return await transformCodexMessage(data.toString(), state, cwd);
+  return await transformCodexMessage(await frameText(data), state, cwd);
+}
+
+async function frameText(data: unknown): Promise<string> {
+  if (typeof data === "string") return data;
+  if (Buffer.isBuffer(data)) return data.toString("utf8");
+  if (data instanceof ArrayBuffer) return Buffer.from(data).toString("utf8");
+  if (ArrayBuffer.isView(data))
+    return Buffer.from(data.buffer, data.byteOffset, data.byteLength).toString(
+      "utf8",
+    );
+  if (Array.isArray(data) && data.every((part) => Buffer.isBuffer(part)))
+    return Buffer.concat(data).toString("utf8");
+  if (data instanceof Blob)
+    return Buffer.from(await data.arrayBuffer()).toString("utf8");
+  throw new TypeError(
+    `unsupported Codex WebSocket frame: ${Object.prototype.toString.call(data)}`,
+  );
 }
 
 export async function freePort(): Promise<number> {
@@ -127,7 +144,10 @@ export async function startCodexProxy(
           if (client.readyState === WebSocket.OPEN)
             client.send(transformed, { binary });
         })
-        .catch(() => {
+        .catch((error) => {
+          process.stderr.write(
+            `ftn-codex: failed to transform server message: ${error instanceof Error ? error.message : String(error)}\n`,
+          );
           if (client.readyState === WebSocket.OPEN)
             client.send(data, { binary });
         });
