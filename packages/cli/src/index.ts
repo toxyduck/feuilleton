@@ -8,7 +8,7 @@ import { doctorAgent, removeAgent, setupAgent } from "@feuilleton/setup";
 import { runWidget } from "@feuilleton/widgets";
 
 const VERSION =
-  typeof __FTN_VERSION__ === "string" ? __FTN_VERSION__ : "0.1.0-dev";
+  typeof __FTN_VERSION__ === "string" ? __FTN_VERSION__ : "0.1.1-dev";
 type Agent = "codex" | "claude";
 
 function agent(value: string | undefined): Agent {
