@@ -14,7 +14,10 @@ describe("agent context", () => {
       500,
     );
     expect(context).toContain("ftn run");
-    expect(context).toContain('<ftn art="id"/>');
+    expect(context).toContain("renders itself");
+    expect(context).toContain("Markdown fences around `cat`");
+    expect(context).toContain("never paste its tag or repeat it");
+    expect(context).not.toContain("ftn inline");
     for (const command of ["ftn-plot", "ftn-tree", "ftn-graph"]) {
       expect(context).toContain(command);
     }

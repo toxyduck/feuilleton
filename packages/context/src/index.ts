@@ -4,20 +4,15 @@ import type { ArtifactRecord } from "@feuilleton/core";
 export function buildAgentContext(config: FeuilletonConfig): string {
   const protocol =
     config.execution.mode === "inline"
-      ? "For terminal visuals, put complete Bash in <ftn>...</ftn>; it runs after the response."
-      : 'For terminal visuals, pass complete Bash to `ftn run` on stdin and paste its returned `<ftn art="id"/>`.';
+      ? "For long, file, or visual output, put complete Bash in <ftn>...</ftn>; it renders in place. For code, Bash prints Markdown fences around cat. Do not repeat the output."
+      : "For long/file/visual output, use only `ftn run` with full Bash on stdin. Tool output renders itself; never paste its tag or repeat it. For code, Bash prints Markdown fences around `cat`.";
   const widgets = Object.entries(config.widgets)
     .map(
       ([name, widget]) =>
         `${name} (${widget.command}): ${widget.description.trim()}`,
     )
     .join("\n");
-  return [
-    "Feuilleton:",
-    protocol,
-    "Runtime sets terminal size; never pass dimensions.",
-    widgets,
-  ]
+  return ["Feuilleton:", protocol, "Never pass size.", widgets]
     .filter(Boolean)
     .join("\n");
 }
