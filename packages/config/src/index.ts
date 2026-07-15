@@ -51,15 +51,15 @@ const defaults: FeuilletonConfig = {
   widgets: {
     plot: {
       command: "ftn-plot",
-      description: `TSV label<TAB>number. Example: printf 'Jan\\t12\\nFeb\\t19\\n' | ftn-plot bar (also line|scatter).`,
+      description: `TSV label<TAB>number. Example: printf 'A\\t1\\nB\\t2\\n'|ftn-plot line.`,
     },
     tree: {
       command: "ftn-tree",
-      description: `Newline paths. Example: printf 'src/api.ts\\nsrc/ui.ts\\n' | ftn-tree.`,
+      description: `Paths, one/line. Example: printf 'src/a.ts\\nsrc/b.ts\\n'|ftn-tree.`,
     },
     graph: {
       command: "ftn-graph",
-      description: `DOT input. Example: printf 'digraph { api -> db }\\n' | ftn-graph.`,
+      description: `DOT. Example: printf 'digraph{a->b}'|ftn-graph.`,
     },
   },
   sources: [],
