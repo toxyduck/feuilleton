@@ -1,4 +1,6 @@
 import {
+  accessSync,
+  constants,
   existsSync,
   lstatSync,
   mkdirSync,
@@ -9,7 +11,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { homedir } from "node:os";
-import { dirname, join, resolve } from "node:path";
+import { basename, delimiter, dirname, join, resolve } from "node:path";
 
 type Agent = "codex" | "claude";
 interface InstallState {
@@ -44,6 +46,50 @@ function executable(name: string): string | undefined {
   const path = Bun.which(name);
   return path ? realpathSync(resolve(path)) : undefined;
 }
+function resolved(path: string | undefined): string | undefined {
+  if (!path) return undefined;
+  try {
+    return realpathSync(resolve(path));
+  } catch {
+    return undefined;
+  }
+}
+
+function resolvedExecutable(path: string | undefined): string | undefined {
+  if (!path) return undefined;
+  try {
+    accessSync(path, constants.X_OK);
+    return resolved(path);
+  } catch {
+    return undefined;
+  }
+}
+
+function isCodexLauncher(path: string | undefined, launcher: string): boolean {
+  const real = resolved(path);
+  return (
+    !real ||
+    real === resolved(launcher) ||
+    basename(real).toLowerCase().split(".")[0] === "ftn-codex"
+  );
+}
+
+export function findOriginalCodex(
+  launcher: string,
+  pathValue = process.env.PATH ?? "",
+): string | undefined {
+  const names =
+    process.platform === "win32" ? ["codex.exe", "codex"] : ["codex"];
+  for (const directory of pathValue.split(delimiter)) {
+    if (!directory) continue;
+    for (const name of names) {
+      const real = resolvedExecutable(join(directory, name));
+      if (real && !isCodexLauncher(real, launcher)) return real;
+    }
+  }
+  return undefined;
+}
+
 function installCommandLinks(): void {
   const bin = dirname(process.execPath);
   const destination = join(homedir(), ".local", "bin");
@@ -97,8 +143,6 @@ export async function setupAgent(agent: Agent): Promise<void> {
     ]);
     return;
   }
-  const real = executable("codex");
-  if (!real) throw new Error("codex is not installed");
   const launcher =
     process.env.FTN_CODEX_LAUNCHER ??
     join(dirname(process.execPath), "ftn-codex");
@@ -106,9 +150,13 @@ export async function setupAgent(agent: Agent): Promise<void> {
     throw new Error(`Codex launcher not found: ${launcher}`);
   const link = join(homedir(), ".local", "bin", "codex");
   const state = readState();
-  if (real !== realpathSync(launcher)) state.realCodex = real;
-  if (!state.realCodex)
-    throw new Error("cannot determine the original codex executable");
+  const saved = isCodexLauncher(state.realCodex, launcher)
+    ? undefined
+    : resolvedExecutable(state.realCodex);
+  const real = findOriginalCodex(launcher) ?? saved;
+  if (!real)
+    throw new Error("cannot find the original codex executable on PATH");
+  state.realCodex = real;
   await run(
     [state.realCodex, "plugin", "marketplace", "add", integrationRoot("codex")],
     true,
@@ -175,7 +223,13 @@ export function doctorAgent(agent: Agent): string[] {
     issues.push(`${agent} is not installed or not on PATH`);
   if (agent === "codex") {
     const state = readState();
-    if (!state.realCodex) issues.push("original Codex path is not recorded");
+    const launcher =
+      process.env.FTN_CODEX_LAUNCHER ??
+      join(dirname(process.execPath), "ftn-codex");
+    if (isCodexLauncher(state.realCodex, launcher))
+      issues.push(
+        "original Codex path is missing or points to a Feuilleton launcher",
+      );
     if (
       state.codexLink &&
       lstatSafe(state.codexLink) &&
@@ -188,5 +242,10 @@ export function doctorAgent(agent: Agent): string[] {
 }
 
 export function realCodexPath(): string | undefined {
-  return process.env.FTN_REAL_CODEX ?? readState().realCodex;
+  if (process.env.FTN_REAL_CODEX) return process.env.FTN_REAL_CODEX;
+  const launcher = process.env.FTN_CODEX_LAUNCHER ?? process.execPath;
+  const saved = readState().realCodex;
+  return isCodexLauncher(saved, launcher)
+    ? findOriginalCodex(launcher)
+    : resolvedExecutable(saved);
 }
