@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { loadConfig } from "@feuilleton/config";
-import { buildAgentContext } from "@feuilleton/context";
+import { ArtifactStore } from "@feuilleton/artifacts";
+import { buildAgentContext, buildArtifactContext } from "@feuilleton/context";
 
 const inputSchema = z.object({
   hook_event_name: z.string(),
@@ -11,13 +12,32 @@ const inputSchema = z.object({
 export function handleCodexHook(input: unknown): Record<string, unknown> {
   const event = inputSchema.parse(input);
   const config = loadConfig(event.cwd);
-  if (event.hook_event_name === "SessionStart") {
-    return {
-      hookSpecificOutput: {
-        hookEventName: "SessionStart",
-        additionalContext: buildAgentContext(config),
-      },
-    };
+  const store = new ArtifactStore(config.cache);
+  try {
+    if (event.hook_event_name === "SessionStart") {
+      return {
+        hookSpecificOutput: {
+          hookEventName: "SessionStart",
+          additionalContext: buildAgentContext(config),
+        },
+      };
+    }
+    if (
+      event.hook_event_name === "UserPromptSubmit" &&
+      config.execution.mode === "inline"
+    ) {
+      const context = buildArtifactContext(store.undelivered(event.session_id));
+      return context
+        ? {
+            hookSpecificOutput: {
+              hookEventName: "UserPromptSubmit",
+              additionalContext: context,
+            },
+          }
+        : {};
+    }
+    return {};
+  } finally {
+    store.close();
   }
-  return {};
 }

@@ -2,7 +2,8 @@ import { expect, test } from "bun:test";
 import { mkdtempSync, mkdirSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { transformCodexMessage } from "./index.ts";
+import { ArtifactStore } from "@feuilleton/artifacts";
+import { handleCodexHook, transformCodexMessage } from "./index.ts";
 
 test("transforms Codex delta and completed message once", async () => {
   const cwd = mkdtempSync(join(tmpdir(), "ftn-codex-"));
@@ -68,4 +69,41 @@ test("keeps the artifact store open across split Codex deltas", async () => {
     cwd,
   );
   expect(JSON.parse(second).params.delta).toContain("hello");
+});
+
+test("delivers saved output links only in inline mode", () => {
+  const original = Object.getOwnPropertyDescriptor(
+    ArtifactStore.prototype,
+    "undelivered",
+  )!;
+  let calls = 0;
+  ArtifactStore.prototype.undelivered = function () {
+    calls += 1;
+    return [];
+  };
+  try {
+    const toolCwd = mkdtempSync(join(tmpdir(), "ftn-hook-tool-"));
+    handleCodexHook({
+      hook_event_name: "UserPromptSubmit",
+      session_id: "tool-session",
+      cwd: toolCwd,
+    });
+    expect(calls).toBe(0);
+
+    const inlineCwd = mkdtempSync(join(tmpdir(), "ftn-hook-inline-"));
+    mkdirSync(join(inlineCwd, ".feuilleton"));
+    writeFileSync(
+      join(inlineCwd, ".feuilleton", "config.toml"),
+      '[execution]\nmode = "inline"\n',
+    );
+    process.env.FTN_TRUST_ALL = "1";
+    handleCodexHook({
+      hook_event_name: "UserPromptSubmit",
+      session_id: "inline-session",
+      cwd: inlineCwd,
+    });
+    expect(calls).toBe(1);
+  } finally {
+    Object.defineProperty(ArtifactStore.prototype, "undelivered", original);
+  }
 });

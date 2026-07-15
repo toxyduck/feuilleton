@@ -1,4 +1,5 @@
 import type { FeuilletonConfig } from "@feuilleton/config";
+import type { ArtifactRecord } from "@feuilleton/core";
 
 export function buildAgentContext(config: FeuilletonConfig): string {
   const protocol =
@@ -14,4 +15,12 @@ export function buildAgentContext(config: FeuilletonConfig): string {
   return ["Feuilleton:", protocol, "Size supplied.", widgets]
     .filter(Boolean)
     .join("\n");
+}
+
+export function buildArtifactContext(records: ArtifactRecord[]): string {
+  if (!records.length) return "";
+  return [
+    "Inline outputs saved for later use; read only when needed:",
+    ...records.map((record) => `- ${record.id}: ${record.stdoutPath}`),
+  ].join("\n");
 }

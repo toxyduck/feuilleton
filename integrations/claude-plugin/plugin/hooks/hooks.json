@@ -12,6 +12,18 @@
         ]
       }
     ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "ftn",
+            "args": ["hook", "claude"],
+            "timeout": 35
+          }
+        ]
+      }
+    ],
     "MessageDisplay": [
       {
         "hooks": [
