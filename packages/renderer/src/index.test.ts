@@ -9,7 +9,7 @@ import type { FeuilletonConfig } from "@feuilleton/config";
 function config(mode: "inline" | "tool"): FeuilletonConfig {
   return {
     execution: { mode, shell: "bash", timeoutSeconds: 5 },
-    terminal: { fallbackColumns: 80 },
+    terminal: { fallbackColumns: 80, horizontalInset: 4 },
     cache: { maxBytes: 1_000_000, maxEntries: 10, ttlDays: 1 },
     widgets: {},
     sources: [],
@@ -25,7 +25,8 @@ describe("MessageRenderer", () => {
       true,
     );
     expect(output).toContain("hello");
-    expect(output).toContain("artifact:");
+    expect(output).toContain("[output](<");
+    expect(output).not.toContain("artifact:");
     store.close();
   });
 

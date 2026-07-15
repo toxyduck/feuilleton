@@ -13,11 +13,14 @@ export interface ExecutionResult {
 }
 
 export function detectEnvironment(config: FeuilletonConfig): RenderEnvironment {
-  const columns = Number(
+  const terminalColumns = Number(
     process.stdout.columns ??
       process.env.COLUMNS ??
       config.terminal.fallbackColumns,
   );
+  const columns = Number.isFinite(terminalColumns)
+    ? terminalColumns - config.terminal.horizontalInset
+    : config.terminal.fallbackColumns - config.terminal.horizontalInset;
   const unicode = !["C", "POSIX"].includes(
     process.env.LC_ALL ?? process.env.LANG ?? "",
   );
@@ -27,9 +30,7 @@ export function detectEnvironment(config: FeuilletonConfig): RenderEnvironment {
     process.env.TERM !== "dumb",
   );
   return {
-    columns: Number.isFinite(columns)
-      ? Math.max(20, columns)
-      : config.terminal.fallbackColumns,
+    columns: Math.max(20, Math.floor(columns)),
     unicode,
     color,
   };

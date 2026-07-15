@@ -1,0 +1,33 @@
+name: Homebrew analytics
+
+on:
+  schedule:
+    - cron: "23 5 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: homebrew-analytics
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  badge:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Build badge endpoint
+        run: |
+          count="$(curl --fail --silent --show-error https://formulae.brew.sh/api/analytics/install-on-request/90d.json | jq -r '[.items[] | select(.formula == "toxyduck/tap/feuilleton")][0].count // "0"')"
+          jq -n --arg message "$count" '{schemaVersion: 1, label: "brew installs (90d)", message: $message, color: "2f855a"}' > /tmp/homebrew.json
+      - name: Publish metrics branch
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git switch --orphan metrics-work
+          git rm -rf .
+          cp /tmp/homebrew.json homebrew.json
+          git add homebrew.json
+          git commit -m "Update Homebrew analytics"
+          git push --force origin HEAD:metrics

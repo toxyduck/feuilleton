@@ -53,7 +53,7 @@ export class MessageRenderer {
       const record = this.#store.get(directive.id);
       return stdout === undefined || !record
         ? `[feuilleton: artifact ${directive.id} expired]\n`
-        : `${sanitizeTerminalText(stdout)}\nartifact: ${record.stdoutPath}\n`;
+        : `${sanitizeTerminalText(stdout)}\n[output](<${record.stdoutPath}>)\n`;
     }
     if (this.#config.execution.mode === "tool") {
       return `${directive.source}\n[feuilleton: tool mode requires \`ftn run\`]\n`;
@@ -73,7 +73,7 @@ export class MessageRenderer {
           : `exited with status ${result.exitCode}`;
         return `${directive.source}\n[feuilleton: ${reason}]\n${sanitizeTerminalText(result.stderr)}\n`;
       }
-      return `${sanitizeTerminalText(result.stdout)}\nartifact: ${result.artifactPath}\n`;
+      return `${sanitizeTerminalText(result.stdout)}\n[output](<${result.artifactPath}>)\n`;
     } catch (error) {
       return `${directive.source}\n[feuilleton: ${error instanceof Error ? error.message : String(error)}]\n`;
     }

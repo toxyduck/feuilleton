@@ -7,8 +7,8 @@ import type { ExecutionMode, WidgetConfig } from "@feuilleton/core";
 
 const widgetSchema = z.object({
   command: z.string().min(1),
-  description: z.string().refine((value) => value.includes("<ftn>"), {
-    message: "widget description must contain an <ftn> example",
+  description: z.string().refine((value) => value.includes("Example:"), {
+    message: "widget description must contain an example call",
   }),
 });
 
@@ -21,7 +21,10 @@ const partialConfigSchema = z.object({
     })
     .optional(),
   terminal: z
-    .object({ fallback_columns: z.number().int().min(20).optional() })
+    .object({
+      fallback_columns: z.number().int().min(20).optional(),
+      horizontal_inset: z.number().int().min(0).optional(),
+    })
     .optional(),
   cache: z
     .object({
@@ -35,7 +38,7 @@ const partialConfigSchema = z.object({
 
 export interface FeuilletonConfig {
   execution: { mode: ExecutionMode; shell: string; timeoutSeconds: number };
-  terminal: { fallbackColumns: number };
+  terminal: { fallbackColumns: number; horizontalInset: number };
   cache: { maxBytes: number; maxEntries: number; ttlDays: number };
   widgets: Record<string, WidgetConfig>;
   sources: string[];
@@ -43,37 +46,20 @@ export interface FeuilletonConfig {
 
 const defaults: FeuilletonConfig = {
   execution: { mode: "tool", shell: "bash", timeoutSeconds: 30 },
-  terminal: { fallbackColumns: 80 },
+  terminal: { fallbackColumns: 80, horizontalInset: 4 },
   cache: { maxBytes: 256 * 1024 * 1024, maxEntries: 1000, ttlDays: 30 },
   widgets: {
     plot: {
       command: "ftn-plot",
-      description: `Render responsive bar, line, or scatter plots from tab-separated label/value rows.
-
-Example:
-<ftn>
-printf 'Jan\\t12\\nFeb\\t19\\n' | ftn-plot bar
-</ftn>`,
+      description: `TSV label<TAB>number. Example: printf 'Jan\\t12\\nFeb\\t19\\n' | ftn-plot bar (also line|scatter).`,
     },
     tree: {
       command: "ftn-tree",
-      description: `Render a Unicode tree from newline-separated paths.
-
-Example:
-<ftn>
-printf 'src/api.ts\\nsrc/ui.ts\\n' | ftn-tree
-</ftn>`,
+      description: `Newline paths. Example: printf 'src/api.ts\\nsrc/ui.ts\\n' | ftn-tree.`,
     },
     graph: {
       command: "ftn-graph",
-      description: `Render a directed or undirected DOT graph using Graphviz layout.
-
-Example:
-<ftn>
-cat <<'DOT' | ftn-graph
-digraph { api -> database; api -> queue; }
-DOT
-</ftn>`,
+      description: `DOT input. Example: printf 'digraph { api -> db }\\n' | ftn-graph.`,
     },
   },
   sources: [],
@@ -116,6 +102,8 @@ export function loadConfig(cwd = process.cwd()): FeuilletonConfig {
       config.execution.timeoutSeconds = value.execution.timeout_seconds;
     if (value.terminal?.fallback_columns)
       config.terminal.fallbackColumns = value.terminal.fallback_columns;
+    if (value.terminal?.horizontal_inset !== undefined)
+      config.terminal.horizontalInset = value.terminal.horizontal_inset;
     if (value.cache?.max_bytes) config.cache.maxBytes = value.cache.max_bytes;
     if (value.cache?.max_entries)
       config.cache.maxEntries = value.cache.max_entries;

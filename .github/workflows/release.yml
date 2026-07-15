@@ -1,8 +1,16 @@
-name: Release
+name: Publish
 
 on:
-  push:
-    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: SemVer matching package.json
+        required: true
+        type: string
+
+concurrency:
+  group: publish
+  cancel-in-progress: false
 
 permissions:
   contents: write
@@ -13,49 +21,41 @@ jobs:
   verify:
     uses: ./.github/workflows/pull-request.yml
 
-  prepare:
+  publish:
     needs: verify
     runs-on: ubuntu-latest
-    steps:
-      - run: gh release create "${GITHUB_REF_NAME}" --repo "${GITHUB_REPOSITORY}" --generate-notes
-        env:
-          GH_TOKEN: ${{ github.token }}
-
-  release:
-    needs: prepare
-    strategy:
-      matrix:
-        target:
-          - bun-darwin-arm64
-          - bun-darwin-x64
-          - bun-linux-arm64
-          - bun-linux-x64-baseline
-    runs-on: ubuntu-latest
+    env:
+      VERSION: ${{ inputs.version }}
+      GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@v6
       - uses: oven-sh/setup-bun@v2
       - run: bun install --frozen-lockfile
-      - run: bun run build
+      - name: Validate release
         env:
-          FTN_TARGET: ${{ matrix.target }}
-      - run: tar -C "dist/${{ matrix.target }}" -czf "feuilleton-${{ matrix.target }}.tar.gz" .
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          test "$GITHUB_REF_NAME" = "$DEFAULT_BRANCH"
+          test "$(jq -r .version package.json)" = "$VERSION"
+          [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          ! gh release view "v$VERSION"
+      - name: Build archives
+        run: |
+          targets="bun-darwin-arm64 bun-darwin-x64 bun-linux-arm64 bun-linux-x64-baseline"
+          for target in $targets
+          do
+            FTN_TARGET="$target" bun run build
+            tar -C "dist/$target" -czf "feuilleton-$target.tar.gz" .
+          done
+          sha256sum feuilleton-*.tar.gz > SHA256SUMS
       - uses: actions/attest-build-provenance@v3
         with:
-          subject-path: feuilleton-${{ matrix.target }}.tar.gz
-      - run: gh release upload "${GITHUB_REF_NAME}" "feuilleton-${{ matrix.target }}.tar.gz" --clobber
+          subject-path: feuilleton-*.tar.gz
+      - name: Create release
+        run: gh release create "v$VERSION" feuilleton-*.tar.gz SHA256SUMS --target "$GITHUB_SHA" --title "Feuilleton $VERSION" --generate-notes
+      - name: Update public Homebrew tap
         env:
-          GH_TOKEN: ${{ github.token }}
-
-  homebrew:
-    needs: release
-    if: ${{ vars.TAP_REPOSITORY != '' }}
-    runs-on: ubuntu-latest
-    steps:
-      - run: |
-          gh api "repos/${TAP_REPOSITORY}/dispatches" \
-            -f event_type=feuilleton-release \
-            -f "client_payload[version]=${GITHUB_REF_NAME#v}" \
-            -f "client_payload[repository]=${GITHUB_REPOSITORY}"
-        env:
-          GH_TOKEN: ${{ secrets.TAP_GITHUB_TOKEN }}
-          TAP_REPOSITORY: ${{ vars.TAP_REPOSITORY }}
+          TAP_GITHUB_TOKEN: ${{ secrets.TAP_GITHUB_TOKEN }}
+        run: |
+          test -n "$TAP_GITHUB_TOKEN"
+          GH_TOKEN="$TAP_GITHUB_TOKEN" gh api repos/toxyduck/homebrew-tap/dispatches -f event_type=feuilleton-release -f "client_payload[version]=$VERSION" -f "client_payload[repository]=$GITHUB_REPOSITORY"
