@@ -1,0 +1,40 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "ftn",
+            "args": ["hook", "claude"],
+            "timeout": 35
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "ftn",
+            "args": ["hook", "claude"],
+            "timeout": 35
+          }
+        ]
+      }
+    ],
+    "MessageDisplay": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "ftn",
+            "args": ["hook", "claude"],
+            "timeout": 35
+          }
+        ]
+      }
+    ]
+  }
+}

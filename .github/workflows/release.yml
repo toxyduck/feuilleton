@@ -1,0 +1,61 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+  id-token: write
+  attestations: write
+
+jobs:
+  verify:
+    uses: ./.github/workflows/pull-request.yml
+
+  prepare:
+    needs: verify
+    runs-on: ubuntu-latest
+    steps:
+      - run: gh release create "${GITHUB_REF_NAME}" --repo "${GITHUB_REPOSITORY}" --generate-notes
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+  release:
+    needs: prepare
+    strategy:
+      matrix:
+        target:
+          - bun-darwin-arm64
+          - bun-darwin-x64
+          - bun-linux-arm64
+          - bun-linux-x64-baseline
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - run: bun run build
+        env:
+          FTN_TARGET: ${{ matrix.target }}
+      - run: tar -C "dist/${{ matrix.target }}" -czf "feuilleton-${{ matrix.target }}.tar.gz" .
+      - uses: actions/attest-build-provenance@v3
+        with:
+          subject-path: feuilleton-${{ matrix.target }}.tar.gz
+      - run: gh release upload "${GITHUB_REF_NAME}" "feuilleton-${{ matrix.target }}.tar.gz" --clobber
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+  homebrew:
+    needs: release
+    if: ${{ vars.TAP_REPOSITORY != '' }}
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          gh api "repos/${TAP_REPOSITORY}/dispatches" \
+            -f event_type=feuilleton-release \
+            -f "client_payload[version]=${GITHUB_REF_NAME#v}" \
+            -f "client_payload[repository]=${GITHUB_REPOSITORY}"
+        env:
+          GH_TOKEN: ${{ secrets.TAP_GITHUB_TOKEN }}
+          TAP_REPOSITORY: ${{ vars.TAP_REPOSITORY }}

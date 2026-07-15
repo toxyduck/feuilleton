@@ -1,0 +1,11 @@
+{
+  "name": "feuilleton",
+  "owner": { "name": "Feuilleton" },
+  "plugins": [
+    {
+      "name": "feuilleton",
+      "source": "./plugin",
+      "description": "Inline terminal visualizations for Claude Code"
+    }
+  ]
+}
