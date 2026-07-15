@@ -73,7 +73,7 @@ export class MessageRenderer {
           : `exited with status ${result.exitCode}`;
         return `${directive.source}\n[feuilleton: ${reason}]\n${sanitizeTerminalText(result.stderr)}\n`;
       }
-      return `${sanitizeTerminalText(result.stdout)}\n[output](<${result.artifactPath}>)\n`;
+      return `${sanitizeTerminalText(result.stdout)}\n`;
     } catch (error) {
       return `${directive.source}\n[feuilleton: ${error instanceof Error ? error.message : String(error)}]\n`;
     }

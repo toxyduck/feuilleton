@@ -25,7 +25,7 @@ describe("MessageRenderer", () => {
       true,
     );
     expect(output).toContain("hello");
-    expect(output).toContain("[output](<");
+    expect(output).not.toContain("[output](<");
     expect(output).not.toContain("artifact:");
     store.close();
   });
