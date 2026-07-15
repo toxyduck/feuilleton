@@ -41,4 +41,19 @@ describe("MessageRenderer", () => {
     expect(output).toContain("ftn run");
     store.close();
   });
+
+  test("renders an artifact reference with a compact output link", async () => {
+    const root = mkdtempSync(join(tmpdir(), "ftn-test-"));
+    const store = new ArtifactStore({ ...config("tool").cache, root });
+    const artifact = store.create("rendered output", "", 0);
+    const output = await new MessageRenderer(config("tool"), store).push(
+      `<ftn art="${artifact.id}"/>`,
+      true,
+    );
+
+    expect(output).toContain("rendered output");
+    expect(output).toContain(`[output](<${artifact.stdoutPath}>)`);
+    expect(output).not.toContain("artifact:");
+    store.close();
+  });
 });
