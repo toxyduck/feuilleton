@@ -140,7 +140,20 @@ export async function startCodexProxy(
       if (client.readyState !== WebSocket.OPEN) return;
       chain = chain
         .then(async () => {
-          const transformed = await transformCodexFrame(data, state, cwd);
+          const raw = await frameText(data);
+          const transformed = await transformCodexMessage(raw, state, cwd);
+          if (process.env.FTN_DEBUG === "1") {
+            let method = "<non-json>";
+            try {
+              method = String(JSON.parse(raw)?.method ?? "<response>");
+            } catch {
+              method = "<non-json>";
+            }
+            if (method.includes("agentMessage") || raw.includes("<ftn"))
+              process.stderr.write(
+                `ftn-codex: frame type=${Object.prototype.toString.call(data)} binary=${String(binary)} method=${method} transformed=${String(transformed !== raw)}\n`,
+              );
+          }
           if (client.readyState === WebSocket.OPEN)
             client.send(transformed, { binary });
         })
