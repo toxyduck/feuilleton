@@ -73,6 +73,14 @@ export async function transformCodexMessage(
   return raw;
 }
 
+export async function transformCodexFrame(
+  data: { toString(): string },
+  state: Map<string, ItemState>,
+  cwd = process.cwd(),
+): Promise<string> {
+  return await transformCodexMessage(data.toString(), state, cwd);
+}
+
 export async function freePort(): Promise<number> {
   return await new Promise((resolve, reject) => {
     const server = createServer();
@@ -113,18 +121,15 @@ export async function startCodexProxy(
     });
     upstream.on("message", (data, binary) => {
       if (client.readyState !== WebSocket.OPEN) return;
-      if (binary) {
-        client.send(data, { binary: true });
-        return;
-      }
-      const raw = data.toString();
       chain = chain
         .then(async () => {
-          const transformed = await transformCodexMessage(raw, state, cwd);
-          if (client.readyState === WebSocket.OPEN) client.send(transformed);
+          const transformed = await transformCodexFrame(data, state, cwd);
+          if (client.readyState === WebSocket.OPEN)
+            client.send(transformed, { binary });
         })
         .catch(() => {
-          if (client.readyState === WebSocket.OPEN) client.send(raw);
+          if (client.readyState === WebSocket.OPEN)
+            client.send(data, { binary });
         });
     });
     const closeState = (): void => {

@@ -3,7 +3,11 @@ import { mkdtempSync, mkdirSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { ArtifactStore } from "@feuilleton/artifacts";
-import { handleCodexHook, transformCodexMessage } from "./index.ts";
+import {
+  handleCodexHook,
+  transformCodexFrame,
+  transformCodexMessage,
+} from "./index.ts";
 
 test("transforms Codex delta and completed message once", async () => {
   const cwd = mkdtempSync(join(tmpdir(), "ftn-codex-"));
@@ -106,4 +110,20 @@ test("delivers saved output links only in inline mode", () => {
   } finally {
     Object.defineProperty(ArtifactStore.prototype, "undelivered", original);
   }
+});
+
+test("transforms agent messages carried in binary WebSocket frames", async () => {
+  const frame = await transformCodexFrame(
+    Buffer.from(
+      JSON.stringify({
+        method: "item/agentMessage/delta",
+        params: { itemId: "binary", delta: '<ftn art="abcdefgh"/>' },
+      }),
+    ),
+    new Map(),
+    mkdtempSync(join(tmpdir(), "ftn-codex-binary-")),
+  );
+
+  expect(frame).toContain("artifact abcdefgh expired");
+  expect(frame).not.toContain('<ftn art="abcdefgh"/>');
 });
