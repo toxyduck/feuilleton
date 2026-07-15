@@ -43,6 +43,7 @@ export function artifactId(value: string): ArtifactId {
 }
 
 const ARTIFACT_TAG = /^<ftn\s+art="([a-z2-7]{8})"\s*\/>$/;
+const ARTIFACT_TAG_PREFIX = /^<ftn\s+art="([a-z2-7]{8})"\s*\/>/;
 
 export function parseDirective(source: string): Directive {
   const match = ARTIFACT_TAG.exec(source);
@@ -113,7 +114,7 @@ export class StreamingParser {
         this.#pending = this.#pending.slice(5);
         continue;
       }
-      const artifact = ARTIFACT_TAG.exec(this.#pending)?.[0];
+      const artifact = ARTIFACT_TAG_PREFIX.exec(this.#pending)?.[0];
       if (artifact) {
         segments.push(parseDirective(artifact));
         this.#pending = this.#pending.slice(artifact.length);

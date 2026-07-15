@@ -100,41 +100,94 @@ function renderBars(values: Datum[]): string {
 }
 
 function renderPoints(values: Datum[], connect: boolean): string {
-  const width = Math.max(12, columns() - 12);
-  const height = Math.min(16, Math.max(6, Math.ceil(values.length / 2)));
+  const width = Math.max(16, Math.min(60, columns() - 12));
+  const height = Math.min(8, Math.max(5, Math.ceil(values.length / 2)));
   const min = Math.min(...values.map(({ value }) => value));
   const max = Math.max(...values.map(({ value }) => value));
   const range = max - min || 1;
-  const canvas = Array.from({ length: height }, () =>
-    Array.from({ length: width }, () => " "),
+  const pixelWidth = width * 2;
+  const pixelHeight = height * 4;
+  const pixels = Array.from({ length: pixelHeight }, () =>
+    Array.from({ length: pixelWidth }, () => false),
   );
   const points = values.map(({ value }, index) => ({
     x:
       values.length === 1
         ? 0
-        : Math.round((index / (values.length - 1)) * (width - 1)),
-    y: Math.round(((max - value) / range) * (height - 1)),
+        : Math.round((index / (values.length - 1)) * (pixelWidth - 1)),
+    y: Math.round(((max - value) / range) * (pixelHeight - 1)),
   }));
   if (connect) {
-    for (let index = 1; index < points.length; index += 1) {
-      const from = points[index - 1]!;
-      const to = points[index]!;
-      for (let x = from.x; x <= to.x; x += 1) {
-        const ratio = to.x === from.x ? 0 : (x - from.x) / (to.x - from.x);
-        canvas[Math.round(from.y + (to.y - from.y) * ratio)]![x] = "·";
-      }
+    for (let index = 1; index < points.length; index += 1)
+      drawLine(pixels, points[index - 1]!, points[index]!);
+  }
+  for (const point of points) pixels[point.y]![point.x] = true;
+  const rows = Array.from({ length: height }, (_, row) => {
+    const label =
+      row === 0 ? max.toFixed(1) : row === height - 1 ? min.toFixed(1) : "";
+    return `${label.padStart(8)} ${row === height - 1 ? "┤" : "│"}${brailleRow(pixels, row, width)}`;
+  });
+  rows.push(`${"".padStart(9)}└${"─".repeat(width)}`);
+  const first = compactLabel(values[0]!.label, Math.floor(width / 2));
+  const last = compactLabel(values.at(-1)!.label, Math.floor(width / 2));
+  rows.push(
+    `${"".padStart(10)}${first}${" ".repeat(Math.max(1, width - first.length - last.length))}${last}`,
+  );
+  return `${rows.join("\n")}\n`;
+}
+
+function drawLine(
+  pixels: boolean[][],
+  from: { x: number; y: number },
+  to: { x: number; y: number },
+): void {
+  let { x, y } = from;
+  const dx = Math.abs(to.x - x);
+  const sx = x < to.x ? 1 : -1;
+  const dy = -Math.abs(to.y - y);
+  const sy = y < to.y ? 1 : -1;
+  let error = dx + dy;
+  for (;;) {
+    pixels[y]![x] = true;
+    if (x === to.x && y === to.y) break;
+    const twice = error * 2;
+    if (twice >= dy) {
+      error += dy;
+      x += sx;
+    }
+    if (twice <= dx) {
+      error += dx;
+      y += sy;
     }
   }
-  for (const point of points) canvas[point.y]![point.x] = "●";
-  return (
-    canvas
-      .map((row, index) => {
-        const value = max - (index / Math.max(1, height - 1)) * range;
-        return `${value.toFixed(1).padStart(8)} │${row.join("").trimEnd()}`;
-      })
-      .concat([`${"".padStart(9)}└${"─".repeat(width)}`])
-      .join("\n") + "\n"
-  );
+}
+
+function brailleRow(pixels: boolean[][], row: number, width: number): string {
+  const dots = [
+    [0, 0, 0],
+    [0, 1, 1],
+    [0, 2, 2],
+    [1, 0, 3],
+    [1, 1, 4],
+    [1, 2, 5],
+    [0, 3, 6],
+    [1, 3, 7],
+  ] as const;
+  return Array.from({ length: width }, (_, cell) => {
+    let value = 0;
+    for (const [x, y, bit] of dots)
+      if (pixels[row * 4 + y]?.[cell * 2 + x]) value |= 1 << bit;
+    return String.fromCodePoint(0x2800 + value);
+  })
+    .join("")
+    .trimEnd();
+}
+
+function compactLabel(value: string, width: number): string {
+  const characters = Array.from(value);
+  return characters.length <= width
+    ? value
+    : `${characters.slice(0, Math.max(1, width - 1)).join("")}…`;
 }
 
 interface PlainNode {

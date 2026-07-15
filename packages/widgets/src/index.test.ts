@@ -10,6 +10,28 @@ describe("built-in widgets", () => {
     expect(renderPlot("api\t42\nweb\t31\n", ["bar"])).toContain("████");
   });
 
+  test("renders compact labeled braille lines", () => {
+    const previous = process.env.FTN_COLUMNS;
+    process.env.FTN_COLUMNS = "200";
+    try {
+      const output = renderPlot("Mon\t10\nTue\t90\nSun\t40\n", ["line"]);
+      expect(output).toContain("Mon");
+      expect(output).toContain("Sun");
+      expect(output).toMatch(/[\u2801-\u28ff]/);
+      expect(
+        Math.max(
+          ...output
+            .trimEnd()
+            .split("\n")
+            .map((line) => Array.from(line).length),
+        ),
+      ).toBeLessThanOrEqual(70);
+    } finally {
+      if (previous === undefined) delete process.env.FTN_COLUMNS;
+      else process.env.FTN_COLUMNS = previous;
+    }
+  });
+
   test("lays out a DOT graph with Graphviz", async () => {
     const output = await renderGraph("digraph { api -> db }");
     expect(output).toContain("[api]");

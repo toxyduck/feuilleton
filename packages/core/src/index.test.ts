@@ -25,4 +25,16 @@ describe("StreamingParser", () => {
       id: "abcdefgh",
     });
   });
+
+  test("parses multiple artifact tags followed by text", () => {
+    const parser = new StreamingParser();
+    const segments = parser.push(
+      `# One\n<ftn art="abcdefgh"/>\n# Two\n<ftn art="bcdefgha"/>\n`,
+      true,
+    ).segments;
+    expect(
+      segments.filter((segment) => typeof segment !== "string"),
+    ).toHaveLength(2);
+    expect(segments).toContain("\n# Two\n");
+  });
 });
