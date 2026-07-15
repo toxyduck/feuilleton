@@ -13,11 +13,12 @@ describe("agent context", () => {
     expect(new TextEncoder().encode(context).byteLength).toBeLessThanOrEqual(
       500,
     );
-    expect(context).toContain("In tool mode");
-    expect(context).toContain("`ftn run` on stdin");
-    expect(context).toContain("that tool result is the display");
+    expect(context).toContain("Tool mode:");
+    expect(context).toContain("`ftn run` executes stdin Bash");
+    expect(context).toContain("returns stdout as an artifact");
+    expect(context).toContain("Widget calls below go inside that Bash");
+    expect(context).toContain("ftn run <<'FTN'");
     expect(context).toContain("Markdown fences around `cat`");
-    expect(context).toContain("One call completes it");
     expect(context).not.toContain("<ftn>");
     for (const command of ["ftn-plot", "ftn-tree", "ftn-graph"]) {
       expect(context).toContain(command);
@@ -32,9 +33,10 @@ describe("agent context", () => {
     config.execution.mode = "inline";
     const context = buildAgentContext(config);
 
-    expect(context).toContain("In inline mode");
+    expect(context).toContain("Inline mode:");
     expect(context).toContain("<ftn>...</ftn>");
-    expect(context).toContain("the tag becomes the display");
+    expect(context).toContain("is replaced by its stdout");
+    expect(context).toContain("Put widget calls below inside that Bash");
     expect(context).not.toContain("ftn run");
   });
 });

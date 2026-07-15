@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { z } from "zod";
 import { loadConfig } from "@feuilleton/config";
 import { ArtifactStore } from "@feuilleton/artifacts";
-import { buildAgentContext, buildArtifactContext } from "@feuilleton/context";
+import { buildAgentContext } from "@feuilleton/context";
 import { MessageRenderer } from "@feuilleton/renderer";
 
 const common = z.object({
@@ -34,17 +34,6 @@ export async function handleClaudeHook(
           additionalContext: buildAgentContext(config),
         },
       };
-    }
-    if (base.hook_event_name === "UserPromptSubmit") {
-      const context = buildArtifactContext(store.undelivered(base.session_id));
-      return context
-        ? {
-            hookSpecificOutput: {
-              hookEventName: "UserPromptSubmit",
-              additionalContext: context,
-            },
-          }
-        : {};
     }
     const event = display.parse(input);
     const stateRoot = join(

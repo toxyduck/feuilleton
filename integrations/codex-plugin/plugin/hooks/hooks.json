@@ -6,13 +6,6 @@
           { "type": "command", "command": "ftn hook codex", "timeout": 35 }
         ]
       }
-    ],
-    "UserPromptSubmit": [
-      {
-        "hooks": [
-          { "type": "command", "command": "ftn hook codex", "timeout": 35 }
-        ]
-      }
     ]
   }
 }
