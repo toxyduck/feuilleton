@@ -24,7 +24,9 @@ for (const [name, entrypoint] of [
       : { outfile: join(bin, name) },
     minify: true,
     sourcemap: "linked",
-    define: { __FTN_VERSION__: JSON.stringify(pkg.version) },
+    define: {
+      __FTN_VERSION__: JSON.stringify(process.env.FTN_VERSION ?? pkg.version),
+    },
   });
   if (!result.success)
     throw new AggregateError(result.logs, `failed to compile ${name}`);
