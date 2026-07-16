@@ -4,6 +4,10 @@
   "expected_use": "required",
   "min_payload_bytes": 9000,
   "required_facts": ["pkg-300", "GPL-3.0"],
+  "required_patterns": [
+    "pkg-013[^\\n]*\\| 2 \\|",
+    "(?=[^\\n]*\\b23\\b)(?=[^\\n]*\\b[Dd]uplicat\\w*\\b)(?=[^\\n]*\\b(?:versions?|packages?)\\b)[^\\n]+"
+  ],
   "record_pattern": "pkg-\\d{3}",
   "min_unique_records": 300
 }

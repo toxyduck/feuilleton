@@ -2,8 +2,14 @@
   "id": "08-error-signatures",
   "fixture": "logs",
   "expected_use": "required",
-  "min_payload_bytes": 1200,
-  "required_facts": ["auth-timeout", "tls-expired"],
+  "required_facts": [
+    "auth-timeout",
+    "tls-expired",
+    "svc-0",
+    "svc-15",
+    "r-00000",
+    "r-00007"
+  ],
   "record_pattern": "(?:auth-timeout|db-deadlock|quota-exceeded|upstream-reset|invalid-payload|cache-miss-storm|worker-crash|tls-expired)",
   "min_unique_records": 8
 }

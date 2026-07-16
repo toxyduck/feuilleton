@@ -1,0 +1,4 @@
+interface:
+  display_name: "Eval Abstraction Review"
+  short_description: "Score eval changes for hardcoding and reuse"
+  default_prompt: "Use $eval-abstraction-review to score this eval change for hardcoding and generalization."

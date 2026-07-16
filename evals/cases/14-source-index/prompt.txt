@@ -1,1 +1,1 @@
-Create a complete public API index for the source file. Include every exported symbol, full signature, documentation summary, and source line number.
+Create a complete public API index for the source file. Include every exported symbol, full signature, documentation summary, and source line number. Emit one explicit record per exported symbol; do not collapse records into ranges or formulas. Every record must contain a non-empty documentation summary extracted from the source.

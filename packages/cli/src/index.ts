@@ -64,7 +64,19 @@ export async function runCli(argv = process.argv.slice(2)): Promise<number> {
         );
         return result.exitCode || 124;
       }
-      process.stdout.write(`<ftn art="${result.artifactId}"/>\n`);
+      await new Promise<void>((resolve, reject) => {
+        process.stdout.write(
+          `<ftn art="${result.artifactId}"/>\n`,
+          (error?: Error | null) => (error ? reject(error) : resolve()),
+        );
+      });
+      await new Promise<void>((resolve, reject) => {
+        process.stderr.write(
+          `ftn: artifact ready <ftn art="${result.artifactId}"/>\n`,
+          (error?: Error | null) => (error ? reject(error) : resolve()),
+        );
+      });
+      await Bun.sleep(10);
       return 0;
     } finally {
       store.close();

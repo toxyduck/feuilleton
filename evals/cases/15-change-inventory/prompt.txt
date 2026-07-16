@@ -1,1 +1,1 @@
-Review the entire patch and return a complete per-file change inventory grouped by component. Include churn, the changed behavior marker, and a risk note for every file.
+Review the entire patch and return a complete per-file change inventory grouped by component as a rendered structured report. Include churn, the changed behavior marker, and a risk note for every file. Preserve each file's actual changed behavior marker from the patch rather than replacing it with a generic category.

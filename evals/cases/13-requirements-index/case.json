@@ -4,6 +4,10 @@
   "expected_use": "required",
   "min_payload_bytes": 8000,
   "required_facts": ["REQ-180", "invariant 180"],
+  "required_patterns": [
+    "\\| REQ-001 \\| (?:Section )?1 \\|",
+    "\\| REQ-180 \\| (?:Section )?180 \\|"
+  ],
   "record_pattern": "REQ-\\d{3}",
   "min_unique_records": 180
 }

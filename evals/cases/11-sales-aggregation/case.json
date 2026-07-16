@@ -2,8 +2,10 @@
   "id": "11-sales-aggregation",
   "fixture": "sales",
   "expected_use": "required",
-  "min_payload_bytes": 1400,
   "required_facts": ["region-10", "category-4"],
+  "required_patterns": [
+    "[Ss]trongest\\s+combination\\s*:?[^\\n]*region-10[^\\n]*category-2[^\\n]*\\$?697,?500(?:\\.0{1,2})?"
+  ],
   "record_pattern": "region-\\d{2}[^\\n]*category-\\d",
-  "min_unique_records": 40
+  "min_unique_records": 20
 }

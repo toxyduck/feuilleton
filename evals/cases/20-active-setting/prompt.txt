@@ -1,1 +1,1 @@
-Which rollout setting is active in settings.toml? Answer with the setting name and value only.
+Which boolean rollout setting is enabled in settings.toml? Answer with the setting name and value only.

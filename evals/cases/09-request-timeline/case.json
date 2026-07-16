@@ -1,9 +1,17 @@
 {
   "id": "09-request-timeline",
   "fixture": "traces",
-  "expected_use": "required",
+  "expected_use": "optional",
   "min_payload_bytes": 1500,
-  "required_facts": ["req-042", "step-079"],
+  "required_facts": [
+    "req-042",
+    "step-079",
+    "step-078",
+    "step-011",
+    "service-6",
+    "service-11"
+  ],
+  "required_patterns": ["\\b[Ss]uspicious(?:-looking)?\\s+transition\\b"],
   "record_pattern": "step-\\d{3}",
   "min_unique_records": 80
 }

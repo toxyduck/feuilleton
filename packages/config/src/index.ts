@@ -55,15 +55,15 @@ const defaults: FeuilletonConfig = {
   widgets: {
     plot: {
       command: "ftn-plot",
-      description: `TSV label<TAB>number; ${PLOT_KINDS.join("|")}. Example body: printf 'A\\t1\\nB\\t2\\n'|ftn-plot line.`,
+      description: `TSV label<TAB>number; ${PLOT_KINDS.join("|")}. Use line for a time series, bar for category comparison, scatter for relationships, area for accumulated backlog, queue, quantity, or volume over time, and pie for composition, shares, or parts of a whole. Example body: printf 'A\\t1\\nB\\t2\\n'|ftn-plot line.`,
     },
     tree: {
       command: "ftn-tree",
-      description: `Paths, one/line. Example body: printf 'src/a.ts\\nsrc/b.ts\\n'|ftn-tree.`,
+      description: `Paths, one/line; use for file and repository hierarchies. Example body: printf 'src/a.ts\\nsrc/b.ts\\n'|ftn-tree.`,
     },
     graph: {
       command: "ftn-graph",
-      description: `DOT. Example body: printf 'digraph{a->b}'|ftn-graph.`,
+      description: `DOT; use for dependencies and relationships. Example body: printf 'digraph{a->b}'|ftn-graph.`,
     },
   },
   sources: [],

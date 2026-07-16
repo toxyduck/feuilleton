@@ -3,7 +3,6 @@
   "fixture": "benchmarks",
   "expected_use": "required",
   "expected_widget": "plot",
-  "widget_arg": "bar",
   "required_facts": ["/checkout", "390"],
   "record_pattern": "\\/(?:endpoint-\\d{2}|checkout)",
   "min_unique_records": 60

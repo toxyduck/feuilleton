@@ -79,7 +79,7 @@ describe("feuilleton eval harness", () => {
     expect(compared.cases[0].metrics.input_tokens.percent).toBe(25);
   });
 
-  test("scores a complete isolated Feuilleton execution from Codex JSONL", () => {
+  test("scores a complete artifact when the top-level command is indirect", () => {
     const tools = mkdtempSync(join(tmpdir(), "ftn-eval-tools-"));
     const fakeCodex = join(tools, "codex");
     const fakeFtn = join(tools, "ftn");
@@ -97,7 +97,7 @@ printf '%s\n' '{"id":"abcdefgh","exitCode":0,"widget":{"version":1,"name":"plot"
 printf '%s\n' \
   '{"type":"thread.started","thread_id":"fixed"}' \
   '{"type":"turn.started"}' \
-  '{"type":"item.completed","item":{"id":"cmd","type":"command_execution","command":"printf data | ftn run","status":"completed"}}' \
+  '{"type":"item.completed","item":{"id":"cmd","type":"command_execution","command":"sh render.sh","status":"completed"}}' \
   '{"type":"item.completed","item":{"id":"msg","type":"agent_message","text":"<ftn art=\\"abcdefgh\\"/>"}}' \
   '{"type":"turn.completed","usage":{"input_tokens":100,"cached_input_tokens":20,"output_tokens":30,"reasoning_output_tokens":5}}'
 `,
@@ -133,5 +133,9 @@ exit 0
     expect(report.cases[0].functional_pass).toBe(true);
     expect(report.cases[0].ftn_status).toBe("applied_correctly");
     expect(report.cases[0].observed_widget).toBe("plot");
+    const metrics = JSON.parse(
+      readFileSync(join(runDir, "metrics.json"), "utf8"),
+    );
+    expect(metrics.cases[0].artifact_bytes).toBeGreaterThan(100);
   });
 });

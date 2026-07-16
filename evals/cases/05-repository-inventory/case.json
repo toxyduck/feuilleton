@@ -4,6 +4,6 @@
   "expected_use": "required",
   "expected_widget": "tree",
   "required_facts": ["pkg-20", "module-20.ts"],
-  "record_pattern": "module-\\d{2}\\.ts",
+  "record_pattern": "pkg-\\d{2}/src/module-\\d{2}\\.ts",
   "min_unique_records": 400
 }

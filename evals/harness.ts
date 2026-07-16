@@ -13,6 +13,12 @@ import { createHash } from "node:crypto";
 import { homedir, tmpdir } from "node:os";
 import { basename, dirname, join, resolve } from "node:path";
 import { realCodexPath } from "@feuilleton/setup";
+import {
+  classifySelectionStatus,
+  type ExpectedUse,
+  widgetMatches,
+} from "./selection-status";
+import { normalizeOracleText } from "./oracle-text";
 
 const ROOT = resolve(import.meta.dir, "..");
 const CASES_ROOT = join(import.meta.dir, "cases");
@@ -23,16 +29,16 @@ const HTTP_PORT = 18765;
 const BANNED = /feuilleton|\bftn\b|widget|artifact|\bbash\b|tokens?/i;
 
 type Mode = "with-ftn" | "without-ftn";
-type ExpectedUse = "required" | "forbidden";
 type Widget = "plot" | "tree" | "graph" | "heatmap" | "histogram";
 
 interface CaseManifest {
   id: string;
   fixture: string;
   expected_use: ExpectedUse;
-  expected_widget?: Widget;
+  expected_widget?: Widget | Widget[];
   widget_arg?: string;
   required_facts: string[];
+  required_patterns?: string[];
   min_payload_bytes?: number;
   record_pattern?: string;
   min_unique_records?: number;
@@ -50,7 +56,7 @@ interface CaseResult {
   ftn_status: string;
   oracle_facts: Record<string, boolean>;
   expected_use: ExpectedUse;
-  expected_widget?: Widget;
+  expected_widget?: Widget | Widget[];
   observed_widget?: string;
   exit_code: number;
   prompt_hash: string;
@@ -331,6 +337,13 @@ function validate(): void {
     ids.add(item.manifest.id);
     if (BANNED.test(item.prompt))
       fail(`tool hint leaked in ${item.manifest.id}/prompt.txt`);
+    for (const pattern of item.manifest.required_patterns ?? []) {
+      try {
+        new RegExp(pattern);
+      } catch {
+        fail(`invalid required pattern in ${item.manifest.id}: ${pattern}`);
+      }
+    }
     const first = join(tmpdir(), `ftn-eval-validate-a-${crypto.randomUUID()}`);
     const second = join(tmpdir(), `ftn-eval-validate-b-${crypto.randomUUID()}`);
     try {
@@ -387,6 +400,7 @@ function copyAuth(codexHome: string): void {
   copyFileSync(source, join(codexHome, "auth.json"));
   chmodSync(join(codexHome, "auth.json"), 0o600);
 }
+
 async function preflight(mode: Mode | "both"): Promise<void> {
   const checks: Array<[string, string]> = [];
   const codex = process.env.CODEX_BIN
@@ -603,7 +617,9 @@ function inspectArtifacts(
     if (metadata?.widget?.name) {
       widget = String(metadata.widget.name);
       widgetArg = String(metadata.widget.args?.[0] ?? "");
-      text += `\n${String(metadata.widget.input ?? "")}`;
+      const widgetInput = String(metadata.widget.input ?? "");
+      text += `\n${widgetInput}`;
+      bytes += Buffer.byteLength(widgetInput);
     }
   }
   return { text, bytes, widget, widgetArg, missing };
@@ -623,12 +639,14 @@ async function runCase(
   const caseRoot = join(options.runRoot, "cases", item.manifest.id, mode);
   const workspace = join(caseRoot, "workspace");
   const home = join(caseRoot, "home");
+  const sessionTmp = join(home, "tmp");
   const codexHome = join(
     tmpdir(),
     `ftn-eval-codex-home-${crypto.randomUUID()}`,
   );
   mkdirSync(workspace, { recursive: true });
   mkdirSync(home, { recursive: true });
+  mkdirSync(sessionTmp, { recursive: true });
   mkdirSync(codexHome, { recursive: true });
   generateFixture(item.manifest.fixture, workspace);
   Bun.spawnSync(["git", "init", "-q"], { cwd: workspace });
@@ -637,9 +655,14 @@ async function runCase(
     join(codexHome, "config.toml"),
     `approval_policy = "never"\nmodel_reasoning_effort = "${options.reasoning}"\nweb_search = "disabled"\n[features]\nmulti_agent = false\napps = false\n`,
   );
+  const widgets = join(import.meta.dir, "widgets");
   if (mode === "with-ftn") {
     if (!options.ftn) fail("ftn executable not found");
     ftnConfig(home);
+    put(
+      join(home, ".bash_profile"),
+      `export PATH=${JSON.stringify(`${widgets}:${dirname(options.ftn)}`)}:$PATH\n`,
+    );
     writeJson(join(codexHome, "hooks.json"), {
       hooks: {
         SessionStart: [
@@ -657,11 +680,11 @@ async function runCase(
       },
     });
   }
-  const trace = join(caseRoot, "custom-widget.trace");
-  const widgets = join(import.meta.dir, "widgets");
+  const trace = join(home, "custom-widget.trace");
   const env = {
     ...process.env,
     HOME: home,
+    TMPDIR: sessionTmp,
     CODEX_HOME: codexHome,
     FTN_TRUST_ALL: "1",
     FTN_EVAL_TRACE: trace,
@@ -678,6 +701,8 @@ async function runCase(
     options.model,
     "-C",
     workspace,
+    "--add-dir",
+    home,
     "-c",
     `model_reasoning_effort=\"${options.reasoning}\"`,
     "-c",
@@ -722,6 +747,10 @@ async function runCase(
   const events = parseEvents(stdout);
   const final = lastMessage(events);
   put(join(caseRoot, "final.txt"), final);
+  const sessionRoot = join(options.runRoot, "sessions", item.manifest.id);
+  put(join(sessionRoot, "events.jsonl"), stdout);
+  put(join(sessionRoot, "stderr.txt"), stderr);
+  put(join(sessionRoot, "final.txt"), final);
   const commands = itemEvents(events).filter(
     (event) => event?.item?.type === "command_execution",
   );
@@ -734,7 +763,7 @@ async function runCase(
     ? readFileSync(trace, "utf8").trim().split(/\r?\n/).filter(Boolean)
     : [];
   const observedWidget = artifacts.widget ?? customTrace.at(-1);
-  const combined = `${final}\n${artifacts.text}`;
+  const combined = normalizeOracleText(`${final}\n${artifacts.text}`);
   const uniqueRecords = item.manifest.record_pattern
     ? new Set(
         [
@@ -756,47 +785,37 @@ async function runCase(
   const oracleFacts = Object.fromEntries(
     item.manifest.required_facts.map((fact) => [fact, combined.includes(fact)]),
   );
+  for (const pattern of item.manifest.required_patterns ?? [])
+    oracleFacts[`/${pattern}/`] = new RegExp(pattern).test(combined);
   oracleFacts._records_complete = recordsPass;
   oracleFacts._isolation_clean = !externalNetwork;
   const factsPass = Object.values(oracleFacts).every(Boolean);
   const sizePass = artifacts.bytes >= (item.manifest.min_payload_bytes ?? 0);
   const widgetPass =
-    !item.manifest.expected_widget ||
-    (observedWidget === item.manifest.expected_widget &&
-      (!item.manifest.widget_arg ||
-        artifacts.widgetArg === item.manifest.widget_arg));
+    widgetMatches(item.manifest.expected_widget, observedWidget) &&
+    (!item.manifest.widget_arg ||
+      artifacts.widgetArg === item.manifest.widget_arg);
   const functionalPass =
     exitCode === 0 &&
     factsPass &&
-    (item.manifest.expected_use === "forbidden" || sizePass);
-  let ftnStatus: string;
-  if (mode === "without-ftn")
-    ftnStatus =
-      ftnCalls.length || ids.length
-        ? "baseline_contaminated"
-        : "baseline_clean";
-  else if (item.manifest.expected_use === "forbidden")
-    ftnStatus =
-      ftnCalls.length || ids.length
-        ? "unnecessary_use"
-        : functionalPass
-          ? "correctly_skipped"
-          : "oracle_failed";
-  else if (!ftnCalls.length) ftnStatus = "not_attempted";
-  else if (
-    commands.some(
+    (item.manifest.expected_use === "forbidden" ||
+      (item.manifest.expected_use === "optional" && !ids.length) ||
+      sizePass);
+  const ftnStatus = classifySelectionStatus({
+    mode,
+    expectedUse: item.manifest.expected_use,
+    ftnCalls: ftnCalls.length,
+    artifactIds: ids.length,
+    failedFtnCall: commands.some(
       (event) =>
         event?.item?.type === "command_execution" &&
         /ftn\s+run/.test(commandText(event)) &&
         event?.item?.status === "failed",
-    )
-  )
-    ftnStatus = "command_failed";
-  else if (!ids.length) ftnStatus = "tag_missing";
-  else if (artifacts.missing) ftnStatus = "artifact_missing";
-  else if (!widgetPass) ftnStatus = "widget_mismatch";
-  else if (!functionalPass) ftnStatus = "oracle_failed";
-  else ftnStatus = "applied_correctly";
+    ),
+    artifactMissing: artifacts.missing,
+    widgetPass,
+    functionalPass,
+  });
   const u = usage(events);
   return {
     result: {

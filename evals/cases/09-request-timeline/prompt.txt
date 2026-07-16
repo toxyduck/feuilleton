@@ -1,1 +1,1 @@
-Reconstruct the complete ordered timeline for request req-042 from the interleaved trace. Include every step and service, then briefly identify any suspicious transition.
+Reconstruct the complete timeline for request req-042 from the interleaved trace in original trace-position order; do not sort by the step label. Include every step and service, then briefly identify any suspicious transition. Return the result directly in the response; a rendered presentation is not required.

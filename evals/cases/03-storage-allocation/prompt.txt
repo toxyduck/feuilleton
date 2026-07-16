@@ -1,1 +1,1 @@
-Explain how storage is distributed across all categories and present the complete composition clearly, including the dominant category and the small categories.
+Explain how storage is distributed across all categories and present the complete composition as a pie chart, including the dominant category and the small categories.
