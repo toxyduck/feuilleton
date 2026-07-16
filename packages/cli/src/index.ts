@@ -1,3 +1,4 @@
+import { writeFileSync } from "node:fs";
 import { loadConfig, trustProject } from "@feuilleton/config";
 import { ArtifactStore } from "@feuilleton/artifacts";
 import { executeScript } from "@feuilleton/executor";
@@ -69,9 +70,22 @@ export async function runCli(argv = process.argv.slice(2)): Promise<number> {
     }
   }
   if (command === "plot" || command === "tree" || command === "graph") {
-    process.stdout.write(
-      await runWidget(command, await stdin(), argv.slice(1)),
-    );
+    const input = await stdin();
+    const capture = process.env.FTN_WIDGET_CAPTURE;
+    if (capture) {
+      writeFileSync(
+        capture,
+        JSON.stringify({
+          version: 1,
+          name: command,
+          args: argv.slice(1),
+          input,
+        }),
+      );
+      process.stdout.write("\u001eFTN_WIDGET\u001e");
+    } else {
+      process.stdout.write(await runWidget(command, input, argv.slice(1)));
+    }
     return 0;
   }
   if (command === "setup") {

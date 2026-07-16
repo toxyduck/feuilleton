@@ -14,6 +14,7 @@ export async function transformCodexMessage(
   raw: string,
   state: Map<string, ItemState>,
   cwd = process.cwd(),
+  columns: () => number = () => loadConfig(cwd).terminal.fallbackColumns,
 ): Promise<string> {
   let message: any;
   try {
@@ -32,7 +33,13 @@ export async function transformCodexMessage(
     if (!item) {
       const store = new ArtifactStore(config.cache);
       item = {
-        renderer: new MessageRenderer(config, store),
+        renderer: new MessageRenderer(
+          config,
+          store,
+          undefined,
+          undefined,
+          columns,
+        ),
         rendered: "",
         store,
       };
@@ -60,10 +67,13 @@ export async function transformCodexMessage(
     } else if (typeof params.item.text === "string") {
       const store = new ArtifactStore(config.cache);
       try {
-        params.item.text = await new MessageRenderer(config, store).push(
-          params.item.text,
-          true,
-        );
+        params.item.text = await new MessageRenderer(
+          config,
+          store,
+          undefined,
+          undefined,
+          columns,
+        ).push(params.item.text, true);
       } finally {
         store.close();
       }
@@ -77,8 +87,14 @@ export async function transformCodexFrame(
   data: unknown,
   state: Map<string, ItemState>,
   cwd = process.cwd(),
+  columns: () => number = () => loadConfig(cwd).terminal.fallbackColumns,
 ): Promise<string> {
-  return await transformCodexMessage(await frameText(data), state, cwd);
+  return await transformCodexMessage(
+    await frameText(data),
+    state,
+    cwd,
+    columns,
+  );
 }
 
 async function frameText(data: unknown): Promise<string> {
@@ -113,6 +129,7 @@ export async function freePort(): Promise<number> {
 export async function startCodexProxy(
   upstreamUrl: string,
   cwd = process.cwd(),
+  columns: () => number = () => loadConfig(cwd).terminal.fallbackColumns,
 ): Promise<{
   port: number;
   close: () => Promise<void>;
@@ -141,7 +158,12 @@ export async function startCodexProxy(
       chain = chain
         .then(async () => {
           const raw = await frameText(data);
-          const transformed = await transformCodexMessage(raw, state, cwd);
+          const transformed = await transformCodexMessage(
+            raw,
+            state,
+            cwd,
+            columns,
+          );
           if (process.env.FTN_DEBUG === "1") {
             let method = "<non-json>";
             try {

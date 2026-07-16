@@ -1,5 +1,6 @@
 #!/usr/bin/env bun
 import { realCodexPath } from "@feuilleton/setup";
+import { loadConfig } from "@feuilleton/config";
 import { freePort, startCodexProxy } from "@feuilleton/adapter-codex";
 
 const passthrough = new Set([
@@ -69,7 +70,27 @@ async function main(): Promise<number> {
     app.kill();
     throw new Error("timed out waiting for codex app-server");
   }
-  const proxy = await startCodexProxy(`ws://127.0.0.1:${appPort}`);
+  const config = loadConfig();
+  const clientColumns = (): number => {
+    const available = Number(
+      process.stdout.columns ??
+        process.env.COLUMNS ??
+        config.terminal.fallbackColumns,
+    );
+    return Math.max(
+      20,
+      Math.floor(
+        (Number.isFinite(available)
+          ? available
+          : config.terminal.fallbackColumns) - config.terminal.horizontalInset,
+      ),
+    );
+  };
+  const proxy = await startCodexProxy(
+    `ws://127.0.0.1:${appPort}`,
+    process.cwd(),
+    clientColumns,
+  );
   const cleanup = async (): Promise<void> => {
     await proxy.close();
     app.kill();

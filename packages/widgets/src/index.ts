@@ -6,14 +6,17 @@ export async function runWidget(
   name: WidgetName,
   input: string,
   args: string[],
+  options: { columns?: number } = {},
 ): Promise<string> {
   if (name === "tree") return renderTree(input);
-  if (name === "plot") return renderPlot(input, args);
-  return await renderGraph(input);
+  if (name === "plot") return renderPlot(input, args, options.columns);
+  return await renderGraph(input, options.columns);
 }
 
-function columns(): number {
-  const value = Number(process.env.FTN_COLUMNS ?? process.env.COLUMNS ?? 80);
+function columns(requested?: number): number {
+  const value = Number(
+    requested ?? process.env.FTN_COLUMNS ?? process.env.COLUMNS ?? 80,
+  );
   return Number.isFinite(value) ? Math.max(20, Math.floor(value)) : 80;
 }
 
@@ -70,18 +73,22 @@ function parseData(input: string): Datum[] {
   return values;
 }
 
-export function renderPlot(input: string, args: string[]): string {
+export function renderPlot(
+  input: string,
+  args: string[],
+  requestedColumns?: number,
+): string {
   const kind = args[0] ?? "bar";
   const values = parseData(input);
   if (!values.length) return "";
-  if (kind === "bar") return renderBars(values);
+  if (kind === "bar") return renderBars(values, requestedColumns);
   if (kind !== "line" && kind !== "scatter")
     throw new Error(`unknown plot type: ${kind}`);
-  return renderPoints(values, kind === "line");
+  return renderPoints(values, kind === "line", requestedColumns);
 }
 
-function renderBars(values: Datum[]): string {
-  const width = columns();
+function renderBars(values: Datum[], requestedColumns?: number): string {
+  const width = columns(requestedColumns);
   const labelWidth = Math.max(...values.map(({ label }) => label.length));
   const max = Math.max(...values.map(({ value }) => Math.abs(value)), 1);
   const inline = labelWidth <= Math.floor(width * 0.35);
@@ -99,8 +106,12 @@ function renderBars(values: Datum[]): string {
   return `${lines.join("\n")}\n`;
 }
 
-function renderPoints(values: Datum[], connect: boolean): string {
-  const width = Math.max(16, Math.min(60, columns() - 12));
+function renderPoints(
+  values: Datum[],
+  connect: boolean,
+  requestedColumns?: number,
+): string {
+  const width = Math.max(16, Math.min(60, columns(requestedColumns) - 12));
   const height = Math.min(8, Math.max(5, Math.ceil(values.length / 2)));
   const min = Math.min(...values.map(({ value }) => value));
   const max = Math.max(...values.map(({ value }) => value));
@@ -206,7 +217,10 @@ function tokens(line: string): string[] {
   );
 }
 
-export async function renderGraph(dot: string): Promise<string> {
+export async function renderGraph(
+  dot: string,
+  requestedColumns?: number,
+): Promise<string> {
   const graphviz = await Graphviz.load();
   const plain = graphviz.layout(dot, "plain", "dot");
   const nodes = new Map<string, PlainNode>();
@@ -229,7 +243,7 @@ export async function renderGraph(dot: string): Promise<string> {
     }
   }
   if (!nodes.size) return "";
-  const width = Math.max(20, columns());
+  const width = Math.max(20, columns(requestedColumns));
   const height = Math.max(
     5,
     Math.ceil((graphHeight / graphWidth) * width * 0.4),

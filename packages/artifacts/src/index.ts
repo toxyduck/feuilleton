@@ -50,11 +50,16 @@ export class ArtifactStore {
     writeFileSync(stdoutPath, stdout);
     writeFileSync(stderrPath, stderr);
     const now = Date.now();
-    const size = Buffer.byteLength(stdout) + Buffer.byteLength(stderr);
-    writeFileSync(
-      join(directory, "meta.json"),
-      JSON.stringify({ id, exitCode, createdAt: now, ...metadata }, null, 2),
+    const meta = JSON.stringify(
+      { id, exitCode, createdAt: now, ...metadata },
+      null,
+      2,
     );
+    const size =
+      Buffer.byteLength(stdout) +
+      Buffer.byteLength(stderr) +
+      Buffer.byteLength(meta);
+    writeFileSync(join(directory, "meta.json"), meta);
     this.#db
       .query(`INSERT INTO artifacts VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?)`)
       .run(
@@ -98,6 +103,32 @@ export class ArtifactStore {
   readStdout(id: ArtifactId): string | undefined {
     const record = this.get(id);
     return record ? readFileSync(record.stdoutPath, "utf8") : undefined;
+  }
+
+  readMetadata(id: ArtifactId): Record<string, unknown> | undefined {
+    const record = this.get(id);
+    if (!record) return undefined;
+    try {
+      return JSON.parse(
+        readFileSync(join(record.directory, "meta.json"), "utf8"),
+      ) as Record<string, unknown>;
+    } catch {
+      return undefined;
+    }
+  }
+
+  writeVariant(
+    id: ArtifactId,
+    key: string,
+    content: string,
+  ): string | undefined {
+    if (!/^[a-z0-9-]+$/.test(key))
+      throw new Error("invalid artifact variant key");
+    const record = this.get(id);
+    if (!record) return undefined;
+    const path = join(record.directory, `render-${key}`);
+    writeFileSync(path, content);
+    return path;
   }
 
   undelivered(sessionId?: string): ArtifactRecord[] {

@@ -1,3 +1,5 @@
+import { existsSync, readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { RenderEnvironment } from "@feuilleton/core";
 import type { FeuilletonConfig } from "@feuilleton/config";
@@ -43,6 +45,7 @@ export async function executeScript(
   metadata: Record<string, unknown> = {},
 ): Promise<ExecutionResult> {
   const terminal = detectEnvironment(config);
+  const capturePath = join(tmpdir(), `ftn-widget-${crypto.randomUUID()}.json`);
   const proc = Bun.spawn([config.execution.shell], {
     stdin: new Blob([script]),
     stdout: "pipe",
@@ -50,6 +53,7 @@ export async function executeScript(
     env: {
       ...process.env,
       FTN_COLUMNS: String(terminal.columns),
+      FTN_WIDGET_CAPTURE: capturePath,
       FTN_UNICODE: terminal.unicode ? "1" : "0",
       FTN_COLOR: terminal.color ? "1" : "0",
       ...(terminal.color ? {} : { NO_COLOR: "1" }),
@@ -66,7 +70,18 @@ export async function executeScript(
     proc.exited,
   ]);
   clearTimeout(timeout);
-  const record = store.create(stdout, stderr, exitCode, metadata);
+  let widget: unknown;
+  if (existsSync(capturePath)) {
+    try {
+      widget = JSON.parse(readFileSync(capturePath, "utf8"));
+    } finally {
+      rmSync(capturePath, { force: true });
+    }
+  }
+  const record = store.create(stdout, stderr, exitCode, {
+    ...metadata,
+    ...(widget ? { widget } : {}),
+  });
   return {
     stdout,
     stderr,

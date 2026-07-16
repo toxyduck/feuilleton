@@ -56,4 +56,50 @@ describe("MessageRenderer", () => {
     expect(output).not.toContain("artifact:");
     store.close();
   });
+
+  test("renders one widget artifact for each client width", async () => {
+    const root = mkdtempSync(join(tmpdir(), "ftn-widget-test-"));
+    const store = new ArtifactStore({ ...config("tool").cache, root });
+    const artifact = store.create(
+      "before\n\u001eFTN_WIDGET\u001eafter\n",
+      "",
+      0,
+      {
+        widget: {
+          version: 1,
+          name: "plot",
+          args: ["line"],
+          input: "Mon\t10\nTue\t90\nSun\t40\n",
+        },
+      },
+    );
+    const tag = `<ftn art="${artifact.id}"/>`;
+    const narrow = await new MessageRenderer(
+      config("tool"),
+      store,
+      undefined,
+      undefined,
+      () => 40,
+    ).push(tag, true);
+    const wide = await new MessageRenderer(
+      config("tool"),
+      store,
+      undefined,
+      undefined,
+      () => 80,
+    ).push(tag, true);
+
+    expect(narrow).not.toBe(wide);
+    expect(narrow).toContain("before");
+    expect(narrow).toContain("after");
+    expect(narrow).not.toContain("FTN_WIDGET");
+    expect(narrow).toContain("render-plot-40");
+    expect(wide).toContain("render-plot-80");
+    expect(
+      Math.max(...narrow.split("\n").map((line) => Array.from(line).length)),
+    ).toBeLessThan(
+      Math.max(...wide.split("\n").map((line) => Array.from(line).length)),
+    );
+    store.close();
+  });
 });
