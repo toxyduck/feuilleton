@@ -1,0 +1,9 @@
+{
+  "id": "13-requirements-index",
+  "fixture": "rfc",
+  "expected_use": "required",
+  "min_payload_bytes": 8000,
+  "required_facts": ["REQ-180", "invariant 180"],
+  "record_pattern": "REQ-\\d{3}",
+  "min_unique_records": 180
+}

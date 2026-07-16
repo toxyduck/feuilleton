@@ -1,0 +1,1 @@
+Aggregate the full sales file by every region and category combination. Return all combinations with totals and ranks, plus a concise statement of the strongest combination.

@@ -45,3 +45,26 @@ test("streams normal Claude text and buffers only an open ftn block", async () =
     (final.hookSpecificOutput as { displayContent: string }).displayContent,
   ).toContain("tool mode");
 });
+
+test("handles Claude context hooks in tool mode", async () => {
+  const cwd = mkdtempSync(join(tmpdir(), "ftn-claude-context-"));
+  const session_id = `session-${crypto.randomUUID()}`;
+
+  const start = await handleClaudeHook({
+    hook_event_name: "SessionStart",
+    session_id,
+    cwd,
+  });
+  expect(
+    (start.hookSpecificOutput as { additionalContext: string })
+      .additionalContext,
+  ).toContain("Feuilleton tool mode");
+
+  expect(
+    await handleClaudeHook({
+      hook_event_name: "UserPromptSubmit",
+      session_id,
+      cwd,
+    }),
+  ).toEqual({});
+});

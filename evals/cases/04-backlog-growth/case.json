@@ -1,0 +1,10 @@
+{
+  "id": "04-backlog-growth",
+  "fixture": "backlog",
+  "expected_use": "required",
+  "expected_widget": "plot",
+  "widget_arg": "area",
+  "required_facts": ["day-137", "920"],
+  "record_pattern": "day-\\d{3}",
+  "min_unique_records": 180
+}

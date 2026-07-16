@@ -1,0 +1,9 @@
+{
+  "id": "12-lock-audit",
+  "fixture": "lockfile",
+  "expected_use": "required",
+  "min_payload_bytes": 9000,
+  "required_facts": ["pkg-300", "GPL-3.0"],
+  "record_pattern": "pkg-\\d{3}",
+  "min_unique_records": 300
+}

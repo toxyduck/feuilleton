@@ -1,0 +1,4 @@
+interface:
+  display_name: "Feuilleton Eval"
+  short_description: "Run deterministic Feuilleton agent evaluations"
+  default_prompt: "Use $feuilleton-eval to run the deterministic Feuilleton evaluation suite."

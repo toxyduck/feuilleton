@@ -1,6 +1,5 @@
 import { Graphviz } from "@hpcc-js/wasm-graphviz";
-
-export type WidgetName = "plot" | "tree" | "graph";
+import { isPlotKind, type WidgetName } from "@feuilleton/core";
 
 export async function runWidget(
   name: WidgetName,
@@ -81,10 +80,15 @@ export function renderPlot(
   const kind = args[0] ?? "bar";
   const values = parseData(input);
   if (!values.length) return "";
+  if (!isPlotKind(kind)) throw new Error(`unknown plot type: ${kind}`);
   if (kind === "bar") return renderBars(values, requestedColumns);
-  if (kind !== "line" && kind !== "scatter")
-    throw new Error(`unknown plot type: ${kind}`);
-  return renderPoints(values, kind === "line", requestedColumns);
+  if (kind === "pie") return renderPie(values, requestedColumns);
+  return renderPoints(
+    values,
+    kind !== "scatter",
+    requestedColumns,
+    kind === "area",
+  );
 }
 
 function renderBars(values: Datum[], requestedColumns?: number): string {
@@ -110,6 +114,7 @@ function renderPoints(
   values: Datum[],
   connect: boolean,
   requestedColumns?: number,
+  fill = false,
 ): string {
   const width = Math.max(16, Math.min(60, columns(requestedColumns) - 12));
   const height = Math.min(8, Math.max(5, Math.ceil(values.length / 2)));
@@ -133,6 +138,13 @@ function renderPoints(
       drawLine(pixels, points[index - 1]!, points[index]!);
   }
   for (const point of points) pixels[point.y]![point.x] = true;
+  if (fill) {
+    for (let x = 0; x < pixelWidth; x += 1) {
+      const top = pixels.findIndex((row) => row[x]);
+      if (top < 0) continue;
+      for (let y = top; y < pixelHeight; y += 1) pixels[y]![x] = true;
+    }
+  }
   const rows = Array.from({ length: height }, (_, row) => {
     const label =
       row === 0 ? max.toFixed(1) : row === height - 1 ? min.toFixed(1) : "";
@@ -145,6 +157,47 @@ function renderPoints(
     `${"".padStart(10)}${first}${" ".repeat(Math.max(1, width - first.length - last.length))}${last}`,
   );
   return `${rows.join("\n")}\n`;
+}
+
+function renderPie(values: Datum[], requestedColumns?: number): string {
+  if (values.some(({ value }) => value < 0))
+    throw new Error("pie values must be non-negative");
+  const total = values.reduce((sum, { value }) => sum + value, 0);
+  if (total <= 0) throw new Error("pie total must be greater than zero");
+  const width = columns(requestedColumns);
+  const diameter = Math.max(7, Math.min(11, Math.floor((width - 2) / 2)));
+  const chartWidth = diameter * 2;
+  const radius = diameter / 2;
+  const innerRadius = radius * 0.42;
+  const shades = ["█", "▓", "▒", "░", "●", "◆", "■", "▪"];
+  const boundaries: number[] = [];
+  let cumulative = 0;
+  for (const { value } of values) {
+    cumulative += value / total;
+    boundaries.push(cumulative * Math.PI * 2);
+  }
+  const chart = Array.from({ length: diameter }, (_, y) => {
+    let row = "";
+    for (let x = 0; x < chartWidth; x += 1) {
+      const dx = (x + 0.5 - radius * 2) / 2;
+      const dy = y + 0.5 - radius;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      if (distance > radius * 0.95 || distance < innerRadius) {
+        row += " ";
+        continue;
+      }
+      const angle =
+        (Math.atan2(dy, dx) + Math.PI / 2 + Math.PI * 2) % (Math.PI * 2);
+      const index = boundaries.findIndex((boundary) => angle <= boundary);
+      row += shades[(index < 0 ? values.length - 1 : index) % shades.length];
+    }
+    return row;
+  });
+  const legend = values.map(({ label, value }, index) => {
+    const percent = ((value / total) * 100).toFixed(1);
+    return `${shades[index % shades.length]} ${compactLabel(label, Math.max(4, width - 12))} ${percent}%`;
+  });
+  return `${chart.join("\n")}\n${legend.join("\n")}\n`;
 }
 
 function drawLine(

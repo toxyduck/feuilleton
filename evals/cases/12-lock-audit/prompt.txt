@@ -1,0 +1,1 @@
+Audit every package in the lock data. Return a complete table of package, version, license, and duplicate version count, and clearly identify license and duplication risks.

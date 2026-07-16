@@ -1,0 +1,6 @@
+{
+  "id": "18-health-status",
+  "fixture": "health",
+  "expected_use": "forbidden",
+  "required_facts": ["healthy", "test"]
+}

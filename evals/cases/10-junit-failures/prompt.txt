@@ -1,0 +1,1 @@
+Produce a complete failure matrix from the test report. Include every failing suite, test name, duration, failure message, and stack marker, sorted by duration.

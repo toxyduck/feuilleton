@@ -1,0 +1,6 @@
+{
+  "id": "19-single-log",
+  "fixture": "single-log",
+  "expected_use": "forbidden",
+  "required_facts": ["E42", "read-only"]
+}

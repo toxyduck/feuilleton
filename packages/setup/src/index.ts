@@ -12,6 +12,7 @@ import {
 } from "node:fs";
 import { homedir } from "node:os";
 import { basename, delimiter, dirname, join, resolve } from "node:path";
+import { WIDGET_NAMES } from "@feuilleton/core";
 
 type Agent = "codex" | "claude";
 interface InstallState {
@@ -20,6 +21,9 @@ interface InstallState {
 }
 
 const statePath = join(homedir(), ".feuilleton", "state", "install.json");
+const commandNames = ["ftn", ...WIDGET_NAMES.map((name) => `ftn-${name}`)];
+const marketplace = "feuilleton";
+const plugin = `${marketplace}@feuilleton`;
 
 function readState(): InstallState {
   try {
@@ -94,7 +98,7 @@ function installCommandLinks(): void {
   const bin = dirname(process.execPath);
   const destination = join(homedir(), ".local", "bin");
   mkdirSync(destination, { recursive: true });
-  for (const name of ["ftn", "ftn-plot", "ftn-tree", "ftn-graph"]) {
+  for (const name of commandNames) {
     if (executable(name)) continue;
     const source = join(bin, name);
     if (!existsSync(source)) {
@@ -108,9 +112,7 @@ function installCommandLinks(): void {
   }
 }
 function missingCommands(): string[] {
-  return ["ftn", "ftn-plot", "ftn-tree", "ftn-graph"].filter(
-    (name) => !executable(name),
-  );
+  return commandNames.filter((name) => !executable(name));
 }
 function integrationRoot(agent: Agent): string {
   const env = process.env.FTN_INTEGRATIONS_DIR;
@@ -133,14 +135,7 @@ export async function setupAgent(agent: Agent): Promise<void> {
     if (!executable("claude")) throw new Error("claude is not installed");
     const root = integrationRoot("claude");
     await run(["claude", "plugin", "marketplace", "add", root], true);
-    await run([
-      "claude",
-      "plugin",
-      "install",
-      "feuilleton@feuilleton",
-      "--scope",
-      "user",
-    ]);
+    await run(["claude", "plugin", "install", plugin, "--scope", "user"]);
     return;
   }
   const launcher =
@@ -161,10 +156,10 @@ export async function setupAgent(agent: Agent): Promise<void> {
     [state.realCodex, "plugin", "marketplace", "add", integrationRoot("codex")],
     true,
   );
-  await run([state.realCodex, "plugin", "add", "feuilleton@feuilleton"]);
+  await run([state.realCodex, "plugin", "add", plugin]);
   state.codexLink = link;
   mkdirSync(dirname(link), { recursive: true });
-  if (existsSync(link) || lstatSafe(link)) rmSync(link, { force: true });
+  if (lstatSafe(link)) rmSync(link, { force: true });
   symlinkSync(launcher, link);
   writeState(state);
 }
@@ -181,19 +176,11 @@ export async function removeAgent(agent: Agent): Promise<void> {
   if (agent === "claude") {
     if (executable("claude")) {
       await run(
-        [
-          "claude",
-          "plugin",
-          "uninstall",
-          "feuilleton@feuilleton",
-          "--scope",
-          "user",
-          "--yes",
-        ],
+        ["claude", "plugin", "uninstall", plugin, "--scope", "user", "--yes"],
         true,
       );
       await run(
-        ["claude", "plugin", "marketplace", "remove", "feuilleton"],
+        ["claude", "plugin", "marketplace", "remove", marketplace],
         true,
       );
     }
@@ -201,12 +188,9 @@ export async function removeAgent(agent: Agent): Promise<void> {
   }
   const state = readState();
   if (state.codexLink && state.realCodex) {
+    await run([state.realCodex, "plugin", "remove", plugin], true);
     await run(
-      [state.realCodex, "plugin", "remove", "feuilleton@feuilleton"],
-      true,
-    );
-    await run(
-      [state.realCodex, "plugin", "marketplace", "remove", "feuilleton"],
+      [state.realCodex, "plugin", "marketplace", "remove", marketplace],
       true,
     );
     rmSync(state.codexLink, { force: true });

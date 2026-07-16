@@ -1,0 +1,9 @@
+{
+  "id": "15-change-inventory",
+  "fixture": "diff",
+  "expected_use": "required",
+  "min_payload_bytes": 6000,
+  "required_facts": ["component-01", "file-100.ts", "security-check-100"],
+  "record_pattern": "file-\\d{3}\\.ts",
+  "min_unique_records": 100
+}

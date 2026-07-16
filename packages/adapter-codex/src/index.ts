@@ -10,18 +10,42 @@ interface ItemState {
   store: ArtifactStore;
 }
 
+const INTERNAL_HOOK_STATUS = "FTN_INTERNAL_CONTEXT";
+
+function isFeuilletonHook(run: any): boolean {
+  if (run?.statusMessage === INTERNAL_HOOK_STATUS) return true;
+  if (run?.source !== "plugin" || typeof run?.sourcePath !== "string")
+    return false;
+  const path = String(run.sourcePath).replaceAll("\\", "/").toLowerCase();
+  return path.includes("/feuilleton/") && path.endsWith("/hooks/hooks.json");
+}
+
+function suppressCodexNotification(message: any): boolean {
+  if (
+    message?.method !== "hook/started" &&
+    message?.method !== "hook/completed"
+  )
+    return false;
+  const run = message?.params?.run;
+  return (
+    isFeuilletonHook(run) &&
+    (message.method === "hook/started" || run.status === "completed")
+  );
+}
+
 export async function transformCodexMessage(
   raw: string,
   state: Map<string, ItemState>,
   cwd = process.cwd(),
   columns: () => number = () => loadConfig(cwd).terminal.fallbackColumns,
-): Promise<string> {
+): Promise<string | undefined> {
   let message: any;
   try {
     message = JSON.parse(raw);
   } catch {
     return raw;
   }
+  if (suppressCodexNotification(message)) return undefined;
   const params = message?.params;
   const config = loadConfig(cwd);
   if (
@@ -88,7 +112,7 @@ export async function transformCodexFrame(
   state: Map<string, ItemState>,
   cwd = process.cwd(),
   columns: () => number = () => loadConfig(cwd).terminal.fallbackColumns,
-): Promise<string> {
+): Promise<string | undefined> {
   return await transformCodexMessage(
     await frameText(data),
     state,
@@ -176,7 +200,7 @@ export async function startCodexProxy(
                 `ftn-codex: frame type=${Object.prototype.toString.call(data)} binary=${String(binary)} method=${method} transformed=${String(transformed !== raw)}\n`,
               );
           }
-          if (client.readyState === WebSocket.OPEN)
+          if (transformed !== undefined && client.readyState === WebSocket.OPEN)
             client.send(transformed, { binary });
         })
         .catch((error) => {

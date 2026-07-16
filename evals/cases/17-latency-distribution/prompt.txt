@@ -1,0 +1,1 @@
+Analyze the complete latency sample. Present the full distribution in fixed 100 ms ranges and summarize its center, spread, and tail.

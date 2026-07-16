@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+set -euo pipefail
+awk '{bucket=int($1/100)*100; count[bucket]++} END {for (bucket=0; bucket<1000; bucket+=100) printf "%03d-%03d\t%d\n", bucket, bucket+99, count[bucket]+0}' | awk -F '\t' '{width=int($2/100); printf "%s %s %d\n", $1, substr("##################################################",1,width), $2}'
+if [[ -n "${FTN_EVAL_TRACE:-}" ]]; then printf 'histogram\n' >>"$FTN_EVAL_TRACE"; fi

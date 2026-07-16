@@ -8,6 +8,7 @@
     "packages/*"
   ],
   "scripts": {
+    "eval": "bun evals/harness.ts run --mode both",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "eslint . --max-warnings 0",
     "format:check": "prettier --check .",

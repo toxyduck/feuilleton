@@ -3,14 +3,24 @@
     "SessionStart": [
       {
         "hooks": [
-          { "type": "command", "command": "ftn hook codex", "timeout": 35 }
+          {
+            "type": "command",
+            "command": "ftn hook codex",
+            "timeout": 35,
+            "statusMessage": "FTN_INTERNAL_CONTEXT"
+          }
         ]
       }
     ],
     "UserPromptSubmit": [
       {
         "hooks": [
-          { "type": "command", "command": "ftn hook codex", "timeout": 35 }
+          {
+            "type": "command",
+            "command": "ftn hook codex",
+            "timeout": 35,
+            "statusMessage": "FTN_INTERNAL_CONTEXT"
+          }
         ]
       }
     ]

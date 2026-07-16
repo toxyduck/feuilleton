@@ -1,0 +1,1 @@
+Extract every normative requirement from the specification. Return a complete index with requirement id, section, exact obligation, and source line number.

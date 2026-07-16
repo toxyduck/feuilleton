@@ -3,7 +3,11 @@ import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { parse } from "smol-toml";
 import { z } from "zod";
-import type { ExecutionMode, WidgetConfig } from "@feuilleton/core";
+import {
+  PLOT_KINDS,
+  type ExecutionMode,
+  type WidgetConfig,
+} from "@feuilleton/core";
 
 const widgetSchema = z.object({
   command: z.string().min(1),
@@ -51,7 +55,7 @@ const defaults: FeuilletonConfig = {
   widgets: {
     plot: {
       command: "ftn-plot",
-      description: `TSV label<TAB>number. Example body: printf 'A\\t1\\nB\\t2\\n'|ftn-plot line.`,
+      description: `TSV label<TAB>number; ${PLOT_KINDS.join("|")}. Example body: printf 'A\\t1\\nB\\t2\\n'|ftn-plot line.`,
     },
     tree: {
       command: "ftn-tree",

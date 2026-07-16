@@ -1,0 +1,9 @@
+{
+  "id": "06-service-dependencies",
+  "fixture": "dependencies",
+  "expected_use": "required",
+  "expected_widget": "graph",
+  "required_facts": ["service-07", "service-19"],
+  "record_pattern": "service-\\d{2}",
+  "min_unique_records": 45
+}

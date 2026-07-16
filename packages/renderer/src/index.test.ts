@@ -102,4 +102,29 @@ describe("MessageRenderer", () => {
     );
     store.close();
   });
+
+  test("keeps rendering after one widget artifact fails", async () => {
+    const root = mkdtempSync(join(tmpdir(), "ftn-widget-failure-test-"));
+    const store = new ArtifactStore({ ...config("tool").cache, root });
+    const invalid = store.create("\u001eFTN_WIDGET\u001e", "", 0, {
+      widget: {
+        version: 1,
+        name: "plot",
+        args: ["radar"],
+        input: "A\t1\n",
+      },
+    });
+    const valid = store.create("hello", "", 0);
+    const renderer = new MessageRenderer(config("tool"), store);
+
+    const output = await renderer.push(
+      `<ftn art="${invalid.id}"/><ftn art="${valid.id}"/>`,
+      true,
+    );
+
+    expect(output).toContain("plot failed: unknown plot type: radar");
+    expect(output).toContain("hello");
+    expect(output).not.toContain("<ftn");
+    store.close();
+  });
 });

@@ -1,0 +1,1 @@
+Compare every endpoint before and after the release. Present a complete ranked regression report that makes the relative size of the changes immediately clear.

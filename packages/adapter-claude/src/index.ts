@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { z } from "zod";
 import { loadConfig } from "@feuilleton/config";
 import { ArtifactStore } from "@feuilleton/artifacts";
-import { buildAgentContext, buildArtifactContext } from "@feuilleton/context";
+import { buildContextHookOutput } from "@feuilleton/context";
 import { MessageRenderer } from "@feuilleton/renderer";
 
 const common = z.object({
@@ -27,28 +27,10 @@ export async function handleClaudeHook(
   const config = loadConfig(base.cwd);
   const store = new ArtifactStore(config.cache);
   try {
-    if (base.hook_event_name === "SessionStart") {
-      return {
-        hookSpecificOutput: {
-          hookEventName: "SessionStart",
-          additionalContext: buildAgentContext(config),
-        },
-      };
-    }
-    if (
-      base.hook_event_name === "UserPromptSubmit" &&
-      config.execution.mode === "inline"
-    ) {
-      const context = buildArtifactContext(store.undelivered(base.session_id));
-      return context
-        ? {
-            hookSpecificOutput: {
-              hookEventName: "UserPromptSubmit",
-              additionalContext: context,
-            },
-          }
-        : {};
-    }
+    const context = buildContextHookOutput(base, config, () =>
+      store.undelivered(base.session_id),
+    );
+    if (context) return context;
     const event = display.parse(input);
     const stateRoot = join(
       homedir(),

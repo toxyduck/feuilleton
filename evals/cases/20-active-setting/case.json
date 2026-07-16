@@ -1,0 +1,6 @@
+{
+  "id": "20-active-setting",
+  "fixture": "tiny-config",
+  "expected_use": "forbidden",
+  "required_facts": ["canary", "true"]
+}

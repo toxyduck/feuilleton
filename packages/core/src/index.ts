@@ -6,6 +6,20 @@ export type Directive =
 
 export type ExecutionMode = "inline" | "tool";
 
+export const WIDGET_NAMES = ["plot", "tree", "graph"] as const;
+export type WidgetName = (typeof WIDGET_NAMES)[number];
+
+export function isWidgetName(value: unknown): value is WidgetName {
+  return WIDGET_NAMES.includes(value as WidgetName);
+}
+
+export const PLOT_KINDS = ["bar", "line", "scatter", "area", "pie"] as const;
+export type PlotKind = (typeof PLOT_KINDS)[number];
+
+export function isPlotKind(value: unknown): value is PlotKind {
+  return PLOT_KINDS.includes(value as PlotKind);
+}
+
 export interface WidgetConfig {
   command: string;
   description: string;

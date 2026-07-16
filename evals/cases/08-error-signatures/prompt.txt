@@ -1,0 +1,1 @@
+Analyze the entire event stream. Return a complete frequency report for every error signature, broken down by service, with one representative request for each signature.

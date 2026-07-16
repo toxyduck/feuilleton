@@ -1,6 +1,7 @@
 import { chmodSync, cpSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import pkg from "../package.json";
+import { WIDGET_NAMES } from "../packages/core/src/index.ts";
 
 type BuildTarget =
   | "bun-darwin-arm64"
@@ -32,7 +33,7 @@ for (const [name, entrypoint] of [
     throw new AggregateError(result.logs, `failed to compile ${name}`);
 }
 
-for (const widget of ["plot", "tree", "graph"]) {
+for (const widget of WIDGET_NAMES) {
   const wrapper = join(bin, `ftn-${widget}`);
   writeFileSync(
     wrapper,

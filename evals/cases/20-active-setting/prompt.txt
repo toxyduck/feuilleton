@@ -1,0 +1,1 @@
+Which rollout setting is active in settings.toml? Answer with the setting name and value only.

@@ -1,0 +1,10 @@
+{
+  "id": "03-storage-allocation",
+  "fixture": "storage",
+  "expected_use": "required",
+  "expected_widget": "plot",
+  "widget_arg": "pie",
+  "required_facts": ["images", "480"],
+  "record_pattern": "(?:images|databases|backups|logs|builds|documents|audio|video|archives|cache|models|other)",
+  "min_unique_records": 12
+}

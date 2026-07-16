@@ -2,7 +2,14 @@ import eslint from "@eslint/js";
 import tseslint from "typescript-eslint";
 
 export default tseslint.config(
-  { ignores: ["dist/**", "coverage/**", "eslint.config.js"] },
+  {
+    ignores: [
+      "dist/**",
+      "coverage/**",
+      ".feuilleton-evals/**",
+      "eslint.config.js",
+    ],
+  },
   eslint.configs.recommended,
   ...tseslint.configs.recommendedTypeChecked,
   {
@@ -26,13 +33,18 @@ export default tseslint.config(
     },
   },
   {
-    files: ["packages/adapter-codex/src/index.ts", "**/*.test.ts"],
+    files: [
+      "packages/adapter-codex/src/index.ts",
+      "evals/harness.ts",
+      "**/*.test.ts",
+    ],
     rules: {
       "@typescript-eslint/no-explicit-any": "off",
       "@typescript-eslint/no-unsafe-assignment": "off",
       "@typescript-eslint/no-unsafe-argument": "off",
       "@typescript-eslint/no-unsafe-call": "off",
       "@typescript-eslint/no-unsafe-member-access": "off",
+      "@typescript-eslint/no-unsafe-return": "off",
     },
   },
 );

@@ -1,0 +1,1 @@
+Review the entire patch and return a complete per-file change inventory grouped by component. Include churn, the changed behavior marker, and a risk note for every file.

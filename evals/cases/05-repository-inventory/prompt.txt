@@ -1,0 +1,1 @@
+Turn the path inventory into a compact, complete view of the repository structure. Preserve every package and module while keeping the result easy to navigate.

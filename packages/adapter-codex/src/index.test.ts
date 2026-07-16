@@ -9,6 +9,44 @@ import {
   transformCodexMessage,
 } from "./index.ts";
 
+test("suppresses only successful internal Feuilleton hook notifications", async () => {
+  const cwd = mkdtempSync(join(tmpdir(), "ftn-codex-hook-"));
+  const transform = (raw: string) => transformCodexMessage(raw, new Map(), cwd);
+  const notification = (
+    method: "hook/started" | "hook/completed",
+    status: string,
+    statusMessage: string | null = "FTN_INTERNAL_CONTEXT",
+  ) => JSON.stringify({ method, params: { run: { status, statusMessage } } });
+
+  expect(
+    await transform(notification("hook/started", "running")),
+  ).toBeUndefined();
+  expect(
+    await transform(notification("hook/completed", "completed")),
+  ).toBeUndefined();
+  expect(
+    await transform(
+      JSON.stringify({
+        method: "hook/completed",
+        params: {
+          run: {
+            status: "completed",
+            statusMessage: null,
+            source: "plugin",
+            sourcePath:
+              "/opt/feuilleton/integrations/codex-plugin/plugin/hooks/hooks.json",
+          },
+        },
+      }),
+    ),
+  ).toBeUndefined();
+  const failed = notification("hook/completed", "failed");
+  const unrelated = notification("hook/completed", "completed", "Another hook");
+  expect(await transform(failed)).toBe(failed);
+  expect(await transform(unrelated)).toBe(unrelated);
+  expect(await transform("not json")).toBe("not json");
+});
+
 test("transforms Codex delta and completed message once", async () => {
   const cwd = mkdtempSync(join(tmpdir(), "ftn-codex-"));
   mkdirSync(join(cwd, ".feuilleton"));
@@ -26,7 +64,7 @@ test("transforms Codex delta and completed message once", async () => {
     state,
     cwd,
   );
-  expect(JSON.parse(delta).params.delta).toContain("hello");
+  expect(JSON.parse(delta!).params.delta).toContain("hello");
   const completed = await transformCodexMessage(
     JSON.stringify({
       method: "item/completed",
@@ -41,7 +79,7 @@ test("transforms Codex delta and completed message once", async () => {
     state,
     cwd,
   );
-  expect(JSON.parse(completed).params.item.text.match(/hello/g)).toHaveLength(
+  expect(JSON.parse(completed!).params.item.text.match(/hello/g)).toHaveLength(
     1,
   );
 });
@@ -63,7 +101,7 @@ test("keeps the artifact store open across split Codex deltas", async () => {
     state,
     cwd,
   );
-  expect(JSON.parse(first).params.delta).toBe("");
+  expect(JSON.parse(first!).params.delta).toBe("");
   const second = await transformCodexMessage(
     JSON.stringify({
       method: "item/agentMessage/delta",
@@ -72,7 +110,7 @@ test("keeps the artifact store open across split Codex deltas", async () => {
     state,
     cwd,
   );
-  expect(JSON.parse(second).params.delta).toContain("hello");
+  expect(JSON.parse(second!).params.delta).toContain("hello");
 });
 
 test("delivers saved output links only in inline mode", () => {

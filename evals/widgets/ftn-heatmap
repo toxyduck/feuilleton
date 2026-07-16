@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+set -euo pipefail
+input=$(mktemp)
+trap 'rm -f "$input"' EXIT
+cat >"$input"
+printf 'heatmap\n'
+awk -F '\t' '{sum[$1]+=$3; n[$1]++} END {for (row in sum) printf "%s\t%.1f\n", row, sum[row]/n[row]}' "$input" | sort | awk -F '\t' '{width=int($2/5); printf "%-8s %s %.1f\n", $1, substr("####################",1,width), $2}'
+if [[ -n "${FTN_EVAL_TRACE:-}" ]]; then printf 'heatmap\n' >>"$FTN_EVAL_TRACE"; fi

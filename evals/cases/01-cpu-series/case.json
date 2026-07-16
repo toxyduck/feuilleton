@@ -1,0 +1,10 @@
+{
+  "id": "01-cpu-series",
+  "fixture": "cpu-series",
+  "expected_use": "required",
+  "expected_widget": "plot",
+  "widget_arg": "line",
+  "required_facts": ["d3-14:00", "99"],
+  "record_pattern": "d[1-7]-\\d{2}:\\d{2}",
+  "min_unique_records": 2000
+}

@@ -32,6 +32,20 @@ describe("built-in widgets", () => {
     }
   });
 
+  test("renders a filled area plot", () => {
+    const output = renderPlot("Mon\t10\nTue\t90\nSun\t40\n", ["area"], 50);
+    expect(output).toContain("Mon");
+    expect((output.match(/[\u2801-\u28ff]/g) ?? []).length).toBeGreaterThan(20);
+  });
+
+  test("renders a pie with percentages and a legend", () => {
+    const output = renderPlot("api\t3\nweb\t1\n", ["pie"], 50);
+    expect(output).toContain("api 75.0%");
+    expect(output).toContain("web 25.0%");
+    expect(output).toContain("█");
+    expect(output).toContain("▓");
+  });
+
   test("lays out a DOT graph with Graphviz", async () => {
     const output = await renderGraph("digraph { api -> db }");
     expect(output).toContain("[api]");

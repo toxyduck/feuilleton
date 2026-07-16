@@ -7,6 +7,7 @@ import { handleClaudeHook } from "@feuilleton/adapter-claude";
 import { handleCodexHook } from "@feuilleton/adapter-codex";
 import { doctorAgent, removeAgent, setupAgent } from "@feuilleton/setup";
 import { runWidget } from "@feuilleton/widgets";
+import { isWidgetName, PLOT_KINDS } from "@feuilleton/core";
 
 const VERSION =
   typeof __FTN_VERSION__ === "string" ? __FTN_VERSION__ : "0.1.1-dev";
@@ -31,7 +32,7 @@ Usage:
   ftn doctor <codex|claude>
   ftn trust
   ftn context
-  ftn plot <bar|line|scatter>
+  ftn plot <${PLOT_KINDS.join("|")}>
   ftn tree
   ftn graph
 `;
@@ -69,7 +70,7 @@ export async function runCli(argv = process.argv.slice(2)): Promise<number> {
       store.close();
     }
   }
-  if (command === "plot" || command === "tree" || command === "graph") {
+  if (isWidgetName(command)) {
     const input = await stdin();
     const capture = process.env.FTN_WIDGET_CAPTURE;
     if (capture) {
@@ -116,9 +117,10 @@ export async function runCli(argv = process.argv.slice(2)): Promise<number> {
     return 0;
   }
   if (command === "hook") {
+    const selected = agent(target);
     const payload = JSON.parse(await stdin()) as unknown;
     const output =
-      target === "claude"
+      selected === "claude"
         ? await handleClaudeHook(payload)
         : handleCodexHook(payload);
     process.stdout.write(JSON.stringify(output));

@@ -1,0 +1,9 @@
+{
+  "id": "14-source-index",
+  "fixture": "source-index",
+  "expected_use": "required",
+  "min_payload_bytes": 7000,
+  "required_facts": ["function250", "Public operation 250"],
+  "record_pattern": "function\\d{3}",
+  "min_unique_records": 250
+}

@@ -1,0 +1,9 @@
+{
+  "id": "10-junit-failures",
+  "fixture": "junit",
+  "expected_use": "required",
+  "min_payload_bytes": 5000,
+  "required_facts": ["Suite120", "test_120", "failure-120"],
+  "record_pattern": "Suite\\d+",
+  "min_unique_records": 120
+}

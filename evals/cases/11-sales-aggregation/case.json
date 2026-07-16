@@ -1,0 +1,9 @@
+{
+  "id": "11-sales-aggregation",
+  "fixture": "sales",
+  "expected_use": "required",
+  "min_payload_bytes": 1400,
+  "required_facts": ["region-10", "category-4"],
+  "record_pattern": "region-\\d{2}[^\\n]*category-\\d",
+  "min_unique_records": 40
+}

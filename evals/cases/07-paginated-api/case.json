@@ -1,0 +1,9 @@
+{
+  "id": "07-paginated-api",
+  "fixture": "http-api",
+  "expected_use": "required",
+  "min_payload_bytes": 20000,
+  "required_facts": ["item-0001", "item-1200"],
+  "record_pattern": "item-\\d{4}",
+  "min_unique_records": 1200
+}

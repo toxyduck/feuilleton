@@ -2,6 +2,7 @@
 import { realCodexPath } from "@feuilleton/setup";
 import { loadConfig } from "@feuilleton/config";
 import { freePort, startCodexProxy } from "@feuilleton/adapter-codex";
+import { detectEnvironment } from "@feuilleton/executor";
 
 const passthrough = new Set([
   "-h",
@@ -71,21 +72,7 @@ async function main(): Promise<number> {
     throw new Error("timed out waiting for codex app-server");
   }
   const config = loadConfig();
-  const clientColumns = (): number => {
-    const available = Number(
-      process.stdout.columns ??
-        process.env.COLUMNS ??
-        config.terminal.fallbackColumns,
-    );
-    return Math.max(
-      20,
-      Math.floor(
-        (Number.isFinite(available)
-          ? available
-          : config.terminal.fallbackColumns) - config.terminal.horizontalInset,
-      ),
-    );
-  };
+  const clientColumns = () => detectEnvironment(config).columns;
   const proxy = await startCodexProxy(
     `ws://127.0.0.1:${appPort}`,
     process.cwd(),

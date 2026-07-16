@@ -100,14 +100,11 @@ export class ArtifactStore {
     };
   }
 
-  readStdout(id: ArtifactId): string | undefined {
-    const record = this.get(id);
-    return record ? readFileSync(record.stdoutPath, "utf8") : undefined;
+  readStdout(record: ArtifactRecord): string {
+    return readFileSync(record.stdoutPath, "utf8");
   }
 
-  readMetadata(id: ArtifactId): Record<string, unknown> | undefined {
-    const record = this.get(id);
-    if (!record) return undefined;
+  readMetadata(record: ArtifactRecord): Record<string, unknown> | undefined {
     try {
       return JSON.parse(
         readFileSync(join(record.directory, "meta.json"), "utf8"),
@@ -117,15 +114,9 @@ export class ArtifactStore {
     }
   }
 
-  writeVariant(
-    id: ArtifactId,
-    key: string,
-    content: string,
-  ): string | undefined {
+  writeVariant(record: ArtifactRecord, key: string, content: string): string {
     if (!/^[a-z0-9-]+$/.test(key))
       throw new Error("invalid artifact variant key");
-    const record = this.get(id);
-    if (!record) return undefined;
     const path = join(record.directory, `render-${key}`);
     writeFileSync(path, content);
     return path;

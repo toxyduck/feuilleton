@@ -1,0 +1,1 @@
+Analyze error density across every service and hourly slot. Present the full matrix compactly and identify the hottest service and time range.

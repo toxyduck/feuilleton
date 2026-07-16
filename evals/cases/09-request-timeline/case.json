@@ -1,0 +1,9 @@
+{
+  "id": "09-request-timeline",
+  "fixture": "traces",
+  "expected_use": "required",
+  "min_payload_bytes": 1500,
+  "required_facts": ["req-042", "step-079"],
+  "record_pattern": "step-\\d{3}",
+  "min_unique_records": 80
+}
